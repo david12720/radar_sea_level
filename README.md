@@ -68,22 +68,20 @@ g++ -std=c++17 -O2 -Iinclude -o radar_sea_level \
 
 Tiles must follow the standard SRTM naming convention: `N31E034.hgt`, `N32E035.hgt`, etc.
 
-### 2. Load tiles and build the LUT
+### 2. Configure, load tiles and build the LUT
 
 ```cpp
-DemDatabase dem;
-for (int lat = 28; lat <= 33; ++lat)
-    for (int lon = 34; lon <= 35; ++lon)
-        dem.loadTile("tiles/" + DemDatabase::srtmFilename(lat, lon), lat, lon,
-                     DemDatabase::Format::SRTM);
-
 LutConfig cfg;
-cfg.max_range_m  = 50000.0; // 50 km coverage
+cfg.max_range_m  = 50000.0; // 50 km coverage radius
 cfg.range_step_m = 15.0;    // 15 m range resolution
 cfg.az_step_deg  = 0.1;     // 0.1° azimuth resolution
 
+// Automatically loads only the tiles that fall within max_range_m of the radar
+DemDatabase dem;
+dem.loadTilesAround(radar, cfg.max_range_m, "./tiles/", DemDatabase::Format::SRTM);
+
 ElevationLUT lut;
-lut.build(radar_lla, dem, cfg);
+lut.build(radar, dem, cfg);
 ```
 
 ### 3. Query per target (real-time)
