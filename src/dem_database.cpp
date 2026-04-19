@@ -1,5 +1,7 @@
 #include "dem_database.h"
+#include "constants.h"
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <iomanip>
 #include <cmath>
@@ -97,4 +99,32 @@ std::string DemDatabase::srtmFilename(int origin_lat, int origin_lon)
 std::string DemDatabase::tileKey(int lat, int lon)
 {
     return std::to_string(lat) + "_" + std::to_string(lon);
+}
+
+int DemDatabase::loadTilesAround(const LLA& radar, double max_range_m,
+                                  const std::string& tiles_dir, Format fmt)
+{
+    // Convert max_range to degrees for lat and lon axes
+    const double lat_span = (max_range_m / EARTH_RADIUS) * RAD2DEG;
+    const double lon_span = (max_range_m / (EARTH_RADIUS * std::cos(radar.lat_deg * DEG2RAD))) * RAD2DEG;
+
+    const int lat_min = static_cast<int>(std::floor(radar.lat_deg - lat_span));
+    const int lat_max = static_cast<int>(std::floor(radar.lat_deg + lat_span));
+    const int lon_min = static_cast<int>(std::floor(radar.lon_deg - lon_span));
+    const int lon_max = static_cast<int>(std::floor(radar.lon_deg + lon_span));
+
+    int loaded = 0;
+    for (int lat = lat_min; lat <= lat_max; ++lat) {
+        for (int lon = lon_min; lon <= lon_max; ++lon) {
+            std::string fname = (fmt == Format::DTED2)
+                                ? dted2Filename(lat, lon)
+                                : srtmFilename(lat, lon);
+            std::string fpath = tiles_dir + fname;
+            if (std::ifstream(fpath).good()) {
+                loadTile(fpath, lat, lon, fmt);
+                ++loaded;
+            }
+        }
+    }
+    return loaded;
 }

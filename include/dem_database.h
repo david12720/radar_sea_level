@@ -1,5 +1,6 @@
 #pragma once
 #include "dted_tile.h"
+#include "types.h"
 #include <string>
 #include <unordered_map>
 
@@ -10,6 +11,11 @@ public:
 
     // Load one tile from disk. origin_lat/lon = SW integer corner of the 1°×1° cell.
     void loadTile(const std::string& filepath, int origin_lat, int origin_lon, Format fmt);
+
+    // Load all tiles within max_range_m of the radar position.
+    // Skips files that don't exist in tiles_dir. Returns number of tiles loaded.
+    int loadTilesAround(const LLA& radar, double max_range_m,
+                        const std::string& tiles_dir, Format fmt);
 
     // Bicubic-interpolated ground elevation at an arbitrary lat/lon.
     // Throws if no tile covers the location.

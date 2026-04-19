@@ -4,7 +4,6 @@
 #include "types.h"
 #include <iostream>
 #include <iomanip>
-#include <fstream>
 
 static void printResult(const LLA& radar, const RadarMeasurement& meas, const TargetResult& res)
 {
@@ -30,26 +29,18 @@ static void printResult(const LLA& radar, const RadarMeasurement& meas, const Ta
 
 int main()
 {
-    // ── Load DEM tiles ────────────────────────────────────────────────────────
-    DemDatabase dem;
-    const std::string tiles_dir = "./tiles/";
-
-    for (int lat = 28; lat <= 33; ++lat) {
-        for (int lon = 34; lon <= 35; ++lon) {
-            std::string fpath = tiles_dir + DemDatabase::srtmFilename(lat, lon);
-            if (std::ifstream(fpath).good())
-                dem.loadTile(fpath, lat, lon, DemDatabase::Format::SRTM);
-        }
-    }
-
     // ── Radar position ────────────────────────────────────────────────────────
     LLA radar { 32.08, 34.76, 10.0 }; // Tel Aviv coast, 10 m altitude
 
-    // ── Build LUT once at startup ─────────────────────────────────────────────
+    // ── LUT config (also drives tile loading) ─────────────────────────────────
     LutConfig cfg;
     cfg.max_range_m  = 50000.0; // 50 km
     cfg.range_step_m = 15.0;
     cfg.az_step_deg  = 0.1;
+
+    // ── Load only the tiles that cover the radar's max range ──────────────────
+    DemDatabase dem;
+    dem.loadTilesAround(radar, cfg.max_range_m, "./tiles/", DemDatabase::Format::SRTM);
 
     ElevationLUT lut;
     lut.build(radar, dem, cfg);
