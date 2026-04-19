@@ -1,0 +1,45 @@
+# Project Context
+
+## Purpose
+
+This project provides ground elevation lookup for radar tracking systems. Given a radar measurement (slant range, azimuth, elevation angle), it determines the terrain height beneath the target and computes the target's height above ground level (AGL).
+
+The primary use case is real-time processing of large target volumes — the pre-computed LUT eliminates per-measurement DEM file access.
+
+## Key Design Decisions
+
+**Lookup table over direct DEM queries at runtime**
+Building a range/azimuth elevation grid at startup costs ~9 seconds and ~45 MB of RAM, but reduces each per-target query to a single array lookup. This is necessary when targets arrive at high rates.
+
+**Bicubic interpolation in the DEM**
+The DEM tiles have ~90 m post spacing (SRTM3). Bicubic interpolation using a Catmull-Rom kernel gives smooth sub-post elevation estimates, avoiding staircase artifacts at tile post boundaries.
+
+**Auto-detection of SRTM1 vs SRTM3**
+Both formats use identical binary layout (big-endian int16, row-major N→S). Resolution is determined by file size: 3601×3601×2 = SRTM1, 1201×1201×2 = SRTM3. No configuration needed.
+
+**Flat-Earth geometry**
+At ranges up to ~50 km the flat-Earth approximation introduces less than 200 m of positional error — acceptable for the target AGL use case. Earth-curvature correction can be added if longer ranges are required.
+
+**Two computation paths**
+- `computeTargetSeaLevel(..., DemDatabase&)` — direct tile query, accurate, for offline or low-rate use
+- `computeTargetSeaLevel(..., ElevationLUT&)` — LUT lookup, O(1), for real-time use
+
+## Tile Coverage (Israel)
+
+Tiles loaded: lat 28–33, lon 34–35 (SRTM3, ~90 m resolution).
+Source: viewfinderpanoramas.org — free download, no account required.
+Tile files are not committed to the repository (binary, ~3 MB each).
+
+## LUT Parameters (configurable)
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| Max range | 50,000 m | Determines table row count |
+| Range step | 15 m | Matches typical radar range resolution |
+| Azimuth step | 0.1° | 3600 azimuth bins per range ring |
+
+## Known Limitations
+
+- Sea areas return 0 m elevation (correct — SRTM has no bathymetry)
+- Targets with `target_height_agl_m < 0` indicate a geometrically inconsistent measurement (beam went underground before reaching the reported range)
+- No earth-curvature correction — error grows beyond ~50 km range
