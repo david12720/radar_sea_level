@@ -1,0 +1,7 @@
+tiles/
+build/
+H36_preview/
+I36_preview/
+*.zip
+*.exe
+radar_sea_level
