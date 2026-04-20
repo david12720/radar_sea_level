@@ -3,7 +3,8 @@ Main entry point. Wires tile server, api client, controls, and map together.
 
 Run:
     python gui/app.py [--server http://localhost:8080] [--tiles map_tiles/israel.mbtiles]
-                      [--lat 32.08] [--lon 34.76] [--max-range 50000]
+
+Radar position and max range are fetched from the C++ server at startup.
 """
 
 import argparse
@@ -20,20 +21,14 @@ import map_view
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-DEFAULT_SERVER    = "http://localhost:8080"
-DEFAULT_TILES     = os.path.join(_PROJECT_ROOT, "map_tiles", "israel.mbtiles")
-DEFAULT_LAT       = 32.08
-DEFAULT_LON       = 34.76
-DEFAULT_MAX_RANGE = 50000.0
+DEFAULT_SERVER = "http://localhost:8080"
+DEFAULT_TILES  = os.path.join(_PROJECT_ROOT, "map_tiles", "israel.mbtiles")
 
 
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--server",    default=DEFAULT_SERVER)
-    p.add_argument("--tiles",     default=DEFAULT_TILES)
-    p.add_argument("--lat",       type=float, default=DEFAULT_LAT)
-    p.add_argument("--lon",       type=float, default=DEFAULT_LON)
-    p.add_argument("--max-range", type=float, default=DEFAULT_MAX_RANGE, dest="max_range")
+    p.add_argument("--server", default=DEFAULT_SERVER)
+    p.add_argument("--tiles",  default=DEFAULT_TILES)
     return p.parse_args()
 
 
@@ -56,17 +51,23 @@ def main():
             html.H2("⚠ Radar server not reachable", style={"color": "red"}),
             html.P(f"Could not connect to {args.server}"),
             html.P("Start the C++ server first:"),
-            html.Pre(f"./radar_server --lat {args.lat} --lon {args.lon}",
+            html.Pre("./radar_server --lat <lat> --lon <lon>",
                      style={"backgroundColor": "#eee", "padding": "12px"}),
         ], style={"padding": "40px", "fontFamily": "sans-serif"})
         app.run(debug=False)
         return
 
+    radar = client.radar_info()
+    radar_lat     = radar["lat_deg"]
+    radar_lon     = radar["lon_deg"]
+    radar_alt     = radar["alt_m"]
+    max_range_m   = radar["max_range_m"]
+
     app.layout = html.Div([
         dcc.Store(id="targets-store", data=[]),
         dcc.Store(id="target-counter", data=0),
         controls.layout(),
-        map_view.layout(args.lat, args.lon, args.max_range, tile_url),
+        map_view.layout(radar_lat, radar_lon, radar_alt, max_range_m, tile_url),
     ], style={"display": "flex", "height": "100vh", "overflow": "hidden"})
 
     @callback(

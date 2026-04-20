@@ -16,6 +16,19 @@ class RadarApiClient:
         except requests.RequestException:
             return False
 
+    def radar_info(self) -> dict:
+        """
+        Returns dict with keys: lat_deg, lon_deg, alt_m, max_range_m
+        Raises RuntimeError on failure.
+        """
+        try:
+            r = requests.get(f"{self._base}/radar", timeout=2)
+        except requests.RequestException as e:
+            raise RuntimeError(f"Cannot reach radar server at {self._base}: {e}") from e
+        if r.status_code == 200:
+            return r.json()
+        raise RuntimeError(f"Server error {r.status_code}: {r.text}")
+
     def query(self, range_m: float, azimuth_deg: float, elevation_deg: float) -> dict:
         """
         Returns dict with keys: lat_deg, lon_deg, alt_msl_m, ground_elev_m, agl_m, horiz_range_m

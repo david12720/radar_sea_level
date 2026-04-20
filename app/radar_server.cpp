@@ -16,6 +16,16 @@ void RadarServer::start()
         res.set_content(R"({"status":"ok"})", "application/json");
     });
 
+    svr.Get("/radar", [this](const httplib::Request&, httplib::Response& res) {
+        const LLA& r = handler_.radar();
+        json out;
+        out["lat_deg"]     = r.lat_deg;
+        out["lon_deg"]     = r.lon_deg;
+        out["alt_m"]       = r.alt_m;
+        out["max_range_m"] = handler_.config().max_range_m;
+        res.set_content(out.dump(), "application/json");
+    });
+
     svr.Post("/query", [this](const httplib::Request& req, httplib::Response& res) {
         json body;
         try {
