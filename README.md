@@ -13,6 +13,84 @@ Given a radar position and a measurement (slant range, azimuth, elevation angle)
 
 For real-time use with large target volumes, a pre-computed lookup table (LUT) maps every (range, azimuth) cell to its ground elevation — built once at startup, O(1) per query at runtime.
 
+## Quick Start
+
+### Prerequisites
+- **WSL** (Windows Subsystem for Linux) with `g++` installed — for the C++ server
+- **Python 3.11+** installed on Windows
+
+### One-time setup
+
+**Step 1 — Build the C++ server** (in a WSL terminal):
+```bash
+cd /mnt/c/Users/<you>/radar_sea_level
+g++ -std=c++17 -O2 -Iinclude -Iapp -o radar_server \
+    main_server.cpp app/query_handler.cpp app/radar_server.cpp \
+    src/dted_tile.cpp src/dem_database.cpp \
+    src/elevation_lut.cpp src/radar_compute.cpp -lpthread
+```
+
+**Step 2 — Download DEM tiles** (terrain elevation data)
+
+Download SRTM3 `.hgt` files for your area from [viewfinderpanoramas.org](https://viewfinderpanoramas.org/dem3.html) and place them in `tiles/`.
+Tile naming example: `N32E034.hgt`.
+
+**Step 3 — Download offline map tiles** (one-time, ~106 MB):
+```bash
+pip install download-tiles
+python map_tiles/download_tiles.py
+```
+
+**Step 4 — Install Python dependencies**:
+```bash
+pip install -r gui/requirements.txt
+```
+
+### Running the system
+
+**Terminal 1 — Start the C++ server** (WSL):
+```bash
+./radar_server --lat 32.08 --lon 34.76 --alt 10
+```
+Wait for `[server] Listening on port 8080` before continuing.
+
+**Terminal 2 — Start the GUI** (Windows):
+```bash
+python gui/app.py
+```
+Open **http://localhost:8050** in your browser.
+
+### Using the GUI
+
+1. **Set your measurement** using the three sliders on the left panel:
+   - **Range** — slant range to the target in meters
+   - **Azimuth** — direction from North (0° = North, 90° = East, 180° = South, 270° = West)
+   - **Elevation** — beam elevation angle (0° = horizontal, positive = upward)
+
+2. **Click "Add Target"** — the target appears as a colored pin on the map
+
+3. **Click a pin** to see the popup with full details:
+   - Lat / Lon — geographic position
+   - Alt MSL — target altitude above mean sea level
+   - Ground — terrain height at that location (from DEM)
+   - AGL — target height above the ground
+   - Range / Az / El — the original measurement
+
+4. **Pin colors** indicate how high the target is above ground:
+
+   | Color | AGL | Meaning |
+   |-------|-----|---------|
+   | 🔴 Red | < 50 m | Near ground / sea-skimmer |
+   | 🟠 Orange | 50–300 m | Low altitude |
+   | 🟡 Yellow | 300–1000 m | Medium altitude |
+   | 🟢 Green | > 1000 m | High altitude |
+
+5. **Click "Clear All"** to reset the map and start a new session.
+
+The blue circle on the map shows the radar's maximum configured range. The blue marker at the center is the radar position.
+
+---
+
 ## Project Structure
 
 ```
