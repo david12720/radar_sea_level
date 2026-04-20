@@ -2,6 +2,8 @@ tiles/
 build/
 H36_preview/
 I36_preview/
+map_tiles/
 *.zip
 *.exe
 radar_sea_level
+radar_server
