@@ -1,0 +1,4 @@
+dash>=2.17
+dash-leaflet>=1.0
+requests
+flask

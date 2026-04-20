@@ -6,6 +6,20 @@ This project provides ground elevation lookup for radar tracking systems. Given 
 
 The primary use case is real-time processing of large target volumes — the pre-computed LUT eliminates per-measurement DEM file access.
 
+## System Architecture
+
+```
+C++ HTTP Server                     Python GUI (Dash)
+────────────────────────────────    ──────────────────────────────
+app/query_handler   ← pure logic    gui/api_client.py  ← HTTP only
+app/radar_server    ← HTTP only     gui/tile_server.py ← offline map
+main_server.cpp     ← wiring        gui/map_view.py    ← map + pins
+                                    gui/controls.py    ← input panel
+                                    gui/app.py         ← wiring
+```
+
+HTTP is a transport detail. `query_handler` has zero HTTP knowledge; `radar_server` has zero domain knowledge. The same pattern is mirrored in Python: `api_client.py` is the only file that knows the server URL.
+
 ## Key Design Decisions
 
 **Lookup table over direct DEM queries at runtime**
@@ -20,15 +34,36 @@ Both formats use identical binary layout (big-endian int16, row-major N→S). Re
 **Flat-Earth geometry**
 At ranges up to ~50 km the flat-Earth approximation introduces less than 200 m of positional error — acceptable for the target AGL use case. Earth-curvature correction can be added if longer ranges are required.
 
+**Header-only C++ dependencies**
+`cpp-httplib` and `nlohmann/json` are both single-header libraries placed in `include/vendor/`. No changes to the build system required.
+
+**Offline map tiles**
+The Python GUI serves tiles from a local MBTiles file (SQLite). No internet is required at runtime. Per-thread SQLite connections avoid threading issues under concurrent tile requests.
+
 **Two computation paths**
 - `computeTargetSeaLevel(..., DemDatabase&)` — direct tile query, accurate, for offline or low-rate use
 - `computeTargetSeaLevel(..., ElevationLUT&)` — LUT lookup, O(1), for real-time use
 
+## HTTP API
+
+```
+POST /query  { range_m, azimuth_deg, elevation_deg }
+          →  200 { lat_deg, lon_deg, alt_msl_m, ground_elev_m, agl_m, horiz_range_m }
+          →  400 validation error
+          →  422 no DEM tile coverage
+          →  500 internal error
+
+GET  /health → { "status": "ok" }
+```
+
+Server-side validation bounds: range ∈ [0, max_range_m], azimuth ∈ [0, 360), elevation ∈ [-10, 45].
+
 ## Tile Coverage (Israel)
 
-Tiles loaded: lat 28–33, lon 34–35 (SRTM3, ~90 m resolution).
-Source: viewfinderpanoramas.org — free download, no account required.
-Tile files are not committed to the repository (binary, ~3 MB each).
+DEM tiles: lat 28–35, lon 30–35 (SRTM3, ~90 m resolution).
+Map tiles: `map_tiles/israel.mbtiles` — 15,916 tiles, z0–z13, ~106 MB.
+Both tile sets are gitignored (binary, large).
+Source: viewfinderpanoramas.org (DEM), OpenStreetMap (map).
 
 ## LUT Parameters (configurable)
 
@@ -41,5 +76,7 @@ Tile files are not committed to the repository (binary, ~3 MB each).
 ## Known Limitations
 
 - Sea areas return 0 m elevation (correct — SRTM has no bathymetry)
-- Targets with `target_height_agl_m < 0` indicate a geometrically inconsistent measurement (beam went underground before reaching the reported range)
+- Targets with `target_height_agl_m < 0` indicate a geometrically inconsistent measurement
 - No earth-curvature correction — error grows beyond ~50 km range
+- C++ server binary is a Linux ELF (compiled by WSL g++) — runs in WSL, not natively on Windows
+- Target list in GUI resets on browser refresh (in-memory state only)
