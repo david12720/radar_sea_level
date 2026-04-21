@@ -13,15 +13,63 @@ Given a radar position and a measurement (slant range, azimuth, elevation angle)
 
 For real-time use with large target volumes, a pre-computed lookup table (LUT) maps every (range, azimuth) cell to its ground elevation — built once at startup, O(1) per query at runtime.
 
-## Quick Start
+## Developer Setup (Windows 10)
 
-### Prerequisites
-- **WSL** (Windows Subsystem for Linux) with `g++` installed — for the C++ server
-- **Python 3.11+** installed on Windows
+### C++ dependencies
+
+All C++ dependencies are **vendored** — no separate installs required:
+
+| Library | Location | Purpose |
+|---------|----------|---------|
+| [cpp-httplib](https://github.com/yhirose/cpp-httplib) | `include/vendor/httplib.h` | HTTP server (header-only) |
+| [nlohmann/json](https://github.com/nlohmann/json) | `include/vendor/json.hpp` | JSON serialization (header-only) |
+
+**Compiler — choose one:**
+
+- **Visual Studio 2022** (recommended): install the **"Desktop development with C++"** workload. CMake is not required — open `radar_sea_level.sln` directly.
+- **WSL g++**: install via `sudo apt install g++` inside WSL.
+
+### Python dependencies
+
+- **Python 3.11+** — [python.org](https://www.python.org/downloads/)
+- Packages: `pip install -r gui/requirements.txt`
+
+| Package | Purpose |
+|---------|---------|
+| dash | Web UI framework |
+| dash-leaflet | Interactive map component |
+| flask | Embedded tile server |
+| requests | HTTP client for C++ server |
+
+### Data files (not in repo)
+
+| What | Where to put it | How to get it |
+|------|----------------|---------------|
+| DEM elevation tiles (`.hgt`) | `tiles/` | [viewfinderpanoramas.org/dem3.html](https://viewfinderpanoramas.org/dem3.html) — free, no login |
+| Offline map tiles (`.mbtiles`) | `map_tiles/` | Run `pip install download-tiles` then `python map_tiles/download_tiles.py` (~106 MB) |
+
+### Ports used
+
+| Port | Component | Configurable |
+|------|-----------|-------------|
+| 8080 | C++ radar server | `--port` arg |
+| 8050 | Python GUI (Dash) | hardcoded in `app.py` |
+| 8081 | Tile server (Flask) | auto-assigned |
+
+All three must be free before starting the system.
+
+---
+
+## Quick Start
 
 ### One-time setup
 
-**Step 1 — Build the C++ server** (in a WSL terminal):
+**Step 1 — Build the C++ server**
+
+*Option A — Visual Studio 2022:*
+Open `radar_sea_level.sln`, select **Release x64**, press **Build**. Binary appears at `x64\Release\radar_server.exe`.
+
+*Option B — WSL g++:*
 ```bash
 cd /mnt/c/Users/<you>/radar_sea_level
 g++ -std=c++17 -O2 -Iinclude -Iapp -o radar_server \
@@ -48,11 +96,19 @@ pip install -r gui/requirements.txt
 
 ### Running the system
 
-**Terminal 1 — Start the C++ server** (WSL):
+**Terminal 1 — Start the C++ server**
+
+Windows (from repo root):
+```cmd
+x64\Release\radar_server.exe --lat 32.08 --lon 34.76 --alt 10 --max-range 50000
+```
+WSL:
 ```bash
-./radar_server --lat 32.08 --lon 34.76 --alt 10
+./radar_server --lat 32.08 --lon 34.76 --alt 10 --max-range 50000
 ```
 Wait for `[server] Listening on port 8080` before continuing.
+
+`--alt` sets radar altitude MSL in meters. `--max-range` sets the detection radius in meters. These values are read by the GUI at startup and shown when you click the radar marker on the map.
 
 **Terminal 2 — Start the GUI** (Windows):
 ```bash
@@ -237,6 +293,7 @@ Content-Type: application/json
 → 422 { "error": "no DEM coverage at target location" }
 
 GET /health → { "status": "ok" }
+GET /radar  → { "lat_deg": ..., "lon_deg": ..., "alt_m": ..., "max_range_m": ... }
 ```
 
 ## Output Fields
