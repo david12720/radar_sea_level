@@ -58,16 +58,18 @@ def main():
         return
 
     radar = client.radar_info()
-    radar_lat     = radar["lat_deg"]
-    radar_lon     = radar["lon_deg"]
-    radar_alt     = radar["alt_m"]
-    max_range_m   = radar["max_range_m"]
+    radar_lat        = radar["lat_deg"]
+    radar_lon        = radar["lon_deg"]
+    radar_alt        = radar["alt_m"]
+    radar_ground     = radar["ground_elev_m"]
+    radar_agl        = radar["agl_m"]
+    max_range_m      = radar["max_range_m"]
 
     app.layout = html.Div([
         dcc.Store(id="targets-store", data=[]),
         dcc.Store(id="target-counter", data=0),
         controls.layout(),
-        map_view.layout(radar_lat, radar_lon, radar_alt, max_range_m, tile_url),
+        map_view.layout(radar_lat, radar_lon, radar_alt, radar_ground, radar_agl, max_range_m, tile_url),
     ], style={"display": "flex", "height": "100vh", "overflow": "hidden"})
 
     @callback(

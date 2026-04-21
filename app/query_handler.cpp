@@ -6,6 +6,13 @@ QueryHandler::QueryHandler(const LLA& radar, const LutConfig& cfg, const std::st
     : radar_(radar), cfg_(cfg)
 {
     dem_.loadTilesAround(radar_, cfg_.max_range_m, tiles_dir, DemDatabase::Format::SRTM);
+    // radar.alt_m is treated as AGL; resolve MSL from terrain
+    try {
+        radar_terrain_elev_m_ = dem_.getElevation(radar_.lat_deg, radar_.lon_deg);
+    } catch (...) {
+        radar_terrain_elev_m_ = 0.0;
+    }
+    radar_.alt_m = radar_terrain_elev_m_ + radar.alt_m;
     lut_.build(radar_, dem_, cfg_);
 }
 

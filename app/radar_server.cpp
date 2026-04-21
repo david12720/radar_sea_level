@@ -18,11 +18,14 @@ void RadarServer::start()
 
     svr.Get("/radar", [this](const httplib::Request&, httplib::Response& res) {
         const LLA& r = handler_.radar();
+        double ground_elev = handler_.getElevation(r.lat_deg, r.lon_deg);
         json out;
-        out["lat_deg"]     = r.lat_deg;
-        out["lon_deg"]     = r.lon_deg;
-        out["alt_m"]       = r.alt_m;
-        out["max_range_m"] = handler_.config().max_range_m;
+        out["lat_deg"]      = r.lat_deg;
+        out["lon_deg"]      = r.lon_deg;
+        out["alt_m"]        = r.alt_m;
+        out["ground_elev_m"]= ground_elev;
+        out["agl_m"]        = r.alt_m - ground_elev;
+        out["max_range_m"]  = handler_.config().max_range_m;
         res.set_content(out.dump(), "application/json");
     });
 
@@ -95,7 +98,7 @@ void RadarServer::start()
         }
     });
 
-    std::cout << "[server] Listening on port " << port_ << " — Ctrl-C to stop\n";
+    std::cout << "[server] Listening on port " << port_ << " -- Ctrl-C to stop\n";
     std::cout.flush();
     svr.listen("0.0.0.0", port_);
 }

@@ -41,7 +41,7 @@ def _target_popup(t: dict) -> html.Div:
     ], style={"minWidth": "220px"})
 
 
-def _radar_popup(lat: float, lon: float, alt: float) -> html.Div:
+def _radar_popup(lat: float, lon: float, alt: float, ground: float, agl: float) -> html.Div:
     def row(label, value):
         return html.Tr([
             html.Td(label, style={"color": "#666", "paddingRight": "10px", "fontSize": "12px"}),
@@ -53,20 +53,23 @@ def _radar_popup(lat: float, lon: float, alt: float) -> html.Div:
             "marginBottom": "6px", "borderBottom": "1px solid #ddd", "paddingBottom": "4px"
         }),
         html.Table([
-            row("Lat",     f"{lat:.5f}°"),
-            row("Lon",     f"{lon:.5f}°"),
-            row("Alt MSL", f"{alt:.1f} m"),
+            row("Lat",        f"{lat:.5f}°"),
+            row("Lon",        f"{lon:.5f}°"),
+            row("Ground",     f"{ground:.1f} m MSL"),
+            row("Height AGL", f"{agl:.1f} m"),
+            row("Alt MSL",    f"{alt:.1f} m"),
         ], style={"borderCollapse": "collapse"}),
-    ], style={"minWidth": "160px"})
+    ], style={"minWidth": "180px"})
 
 
 def layout(radar_lat: float, radar_lon: float, radar_alt: float,
+           radar_ground: float, radar_agl: float,
            max_range_m: float, tile_url: str) -> html.Div:
     radar_marker = dl.Marker(
         position=[radar_lat, radar_lon],
         children=[
             dl.Tooltip("Radar"),
-            dl.Popup(_radar_popup(radar_lat, radar_lon, radar_alt), maxWidth=180),
+            dl.Popup(_radar_popup(radar_lat, radar_lon, radar_alt, radar_ground, radar_agl), maxWidth=200),
         ],
         icon={
             "iconUrl": "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png",

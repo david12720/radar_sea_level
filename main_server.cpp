@@ -1,6 +1,5 @@
 #include "query_handler.h"
 #include "radar_server.h"
-#include "dem_database.h"
 #include <iostream>
 #include <string>
 #include <cstdlib>
@@ -37,27 +36,19 @@ int main(int argc, char* argv[])
         else { std::cerr << "Unknown argument: " << arg << "\n"; usage(argv[0]); return 1; }
     }
 
-    // Resolve radar altitude MSL = terrain elevation at radar position + user-supplied AGL
-    std::cout << "[server] Resolving radar terrain elevation...\n";
-    std::cout.flush();
-    {
-        DemDatabase dem_tmp;
-        dem_tmp.loadTilesAround(radar, cfg.max_range_m, tiles_dir, DemDatabase::Format::SRTM);
-        double terrain = dem_tmp.getElevation(radar.lat_deg, radar.lon_deg);
-        radar.alt_m = terrain + alt_agl;
-        std::cout << "[server] Terrain at radar position: " << terrain << " m MSL\n";
-        std::cout << "[server] Radar AGL: " << alt_agl << " m  →  Radar alt MSL: " << radar.alt_m << " m\n";
-    }
-
     std::cout << "[server] Radar position: lat=" << radar.lat_deg
-              << " lon=" << radar.lon_deg << " alt=" << radar.alt_m << " m MSL\n"
+              << " lon=" << radar.lon_deg << "\n"
               << "[server] Max range: " << cfg.max_range_m << " m\n"
               << "[server] Tiles dir: " << tiles_dir << "\n"
               << "[server] Port: " << port << "\n";
     std::cout.flush();
 
     QueryHandler handler(radar, cfg, tiles_dir);
-    RadarServer  server(handler, port);
+    std::cout << "[server] Terrain at radar: " << handler.radarTerrainElev() << " m MSL  |  "
+              << "AGL: " << alt_agl << " m  |  Alt MSL: " << handler.radar().alt_m << " m\n";
+    std::cout.flush();
+
+    RadarServer server(handler, port);
     server.start();
     return 0;
 }

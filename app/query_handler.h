@@ -35,14 +35,16 @@ public:
     // Returns terrain elevation MSL at the given lat/lon, or 0 if outside tile coverage.
     double getElevation(double lat_deg, double lon_deg) const;
 
-    const LLA&       radar()  const { return radar_; }
-    const LutConfig& config() const { return cfg_; }
+    const LLA&       radar()           const { return radar_; }
+    const LutConfig& config()          const { return cfg_; }
+    double           radarTerrainElev() const { return radar_terrain_elev_m_; }
 
 private:
     LLA          radar_;
     LutConfig    cfg_;
     DemDatabase  dem_;
     ElevationLUT lut_;
+    double       radar_terrain_elev_m_ = 0.0;
 
     void validate(const RadarQuery& q) const;
 };
