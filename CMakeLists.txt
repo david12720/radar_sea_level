@@ -25,6 +25,7 @@ set(CORE_SOURCES
     src/dem_database.cpp
     src/elevation_lut.cpp
     src/radar_compute.cpp
+    src/relative_angle.cpp
 )
 
 # ── Demo binary ───────────────────────────────────────────────────────────────

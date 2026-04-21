@@ -18,6 +18,7 @@ struct TargetResult {
     double target_height_agl_m;  // Target altitude above ground level
     double horizontal_range_m;
     double vertical_offset_m;
+    double relative_elevation_deg; // Beam elevation above terrain line at target (deg)
 };
 
 struct GroundPoint {
