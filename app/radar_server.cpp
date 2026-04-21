@@ -76,12 +76,13 @@ void RadarServer::start()
         try {
             TargetResult r = handler_.handle(q);
             json out;
-            out["lat_deg"]       = r.position.lat_deg;
-            out["lon_deg"]       = r.position.lon_deg;
-            out["alt_msl_m"]     = r.position.alt_m;
-            out["ground_elev_m"] = r.ground_elevation_m;
-            out["agl_m"]         = r.target_height_agl_m;
-            out["horiz_range_m"] = r.horizontal_range_m;
+            out["lat_deg"]          = r.position.lat_deg;
+            out["lon_deg"]          = r.position.lon_deg;
+            out["alt_msl_m"]        = r.position.alt_m;
+            out["ground_elev_m"]    = r.ground_elevation_m;
+            out["agl_m"]            = r.target_height_agl_m;
+            out["horiz_range_m"]    = r.horizontal_range_m;
+            out["relative_elev_deg"]= r.relative_elevation_deg;
             res.set_content(out.dump(), "application/json");
         } catch (const ValidationError& e) {
             res.status = 400;

@@ -1,5 +1,6 @@
 #include "query_handler.h"
 #include "radar_compute.h"
+#include "relative_angle.h"
 #include <sstream>
 
 QueryHandler::QueryHandler(const LLA& radar, const LutConfig& cfg, const std::string& tiles_dir)
@@ -43,7 +44,10 @@ TargetResult QueryHandler::handle(const RadarQuery& q) const
     validate(q);
     RadarMeasurement meas { q.range_m, q.azimuth_deg, q.elevation_deg };
     try {
-        return computeTargetSeaLevel(radar_, meas, lut_);
+        TargetResult r = computeTargetSeaLevel(radar_, meas, lut_);
+        double elev_to_gnd = elevationToGround(radar_, r.horizontal_range_m, r.ground_elevation_m);
+        r.relative_elevation_deg = relativeElevation(q.elevation_deg, elev_to_gnd);
+        return r;
     } catch (const std::runtime_error& e) {
         throw NoCoverageError(e.what());
     }

@@ -37,6 +37,7 @@ def _target_popup(t: dict) -> html.Div:
             row("AGL",        f"{t['agl_m']:.1f} m"),
             row("Range",      f"{t['horiz_range_m']:.0f} m"),
             row("Az / El",    f"{t['azimuth_deg']:.1f}° / {t['elevation_deg']:.1f}°"),
+            row("Rel El",     f"{t['relative_elev_deg']:.2f}°"),
         ], style={"borderCollapse": "collapse"}),
     ], style={"minWidth": "220px"})
 
