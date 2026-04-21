@@ -29,6 +29,21 @@ class RadarApiClient:
             return r.json()
         raise RuntimeError(f"Server error {r.status_code}: {r.text}")
 
+    def get_elevation(self, lat_deg: float, lon_deg: float) -> float:
+        """Returns terrain elevation MSL in meters. Raises RuntimeError on failure."""
+        try:
+            r = requests.get(f"{self._base}/elevation",
+                             params={"lat": lat_deg, "lon": lon_deg}, timeout=3)
+        except requests.RequestException as e:
+            raise RuntimeError(f"Cannot reach radar server: {e}") from e
+        if r.status_code == 200:
+            return r.json()["elev_m"]
+        try:
+            msg = r.json().get("error", r.text)
+        except Exception:
+            msg = r.text
+        raise RuntimeError(f"Server error {r.status_code}: {msg}")
+
     def query(self, range_m: float, azimuth_deg: float, elevation_deg: float) -> dict:
         """
         Returns dict with keys: lat_deg, lon_deg, alt_msl_m, ground_elev_m, agl_m, horiz_range_m

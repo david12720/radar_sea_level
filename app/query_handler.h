@@ -32,12 +32,16 @@ public:
     // Throws ValidationError on bad input, NoCoverageError if target is outside tile coverage.
     TargetResult handle(const RadarQuery& q) const;
 
+    // Returns terrain elevation MSL at the given lat/lon, or 0 if outside tile coverage.
+    double getElevation(double lat_deg, double lon_deg) const;
+
     const LLA&       radar()  const { return radar_; }
     const LutConfig& config() const { return cfg_; }
 
 private:
-    LLA        radar_;
-    LutConfig  cfg_;
+    LLA          radar_;
+    LutConfig    cfg_;
+    DemDatabase  dem_;
     ElevationLUT lut_;
 
     void validate(const RadarQuery& q) const;

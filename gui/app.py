@@ -109,6 +109,25 @@ def main():
     def update_map(targets):
         return map_view.build_target_markers(targets)
 
+    @callback(
+        Output("elevation-bar", "children"),
+        Input("map", "clickData"),
+        prevent_initial_call=True,
+    )
+    def show_elevation(click_data):
+        if not click_data:
+            return "Click on the map to see elevation"
+        latlng = click_data.get("latlng", {})
+        lat = latlng.get("lat")
+        lon = latlng.get("lng")
+        if lat is None or lon is None:
+            return "Click on the map to see elevation"
+        try:
+            elev = client.get_elevation(lat, lon)
+            return f"Lat: {lat:.5f}°  |  Lon: {lon:.5f}°  |  Elev: {elev:.1f} m MSL"
+        except RuntimeError:
+            return f"Lat: {lat:.5f}°  |  Lon: {lon:.5f}°  |  Elev: N/A"
+
     app.run(debug=False, host="127.0.0.1", port=8050)
 
 
