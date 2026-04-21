@@ -8,7 +8,11 @@
 #include <stdexcept>
 
 // ── Bicubic interpolation (Catmull-Rom kernel) ────────────────────────────────
-
+//
+// Catmull-Rom piecewise cubic: C1-continuous, passes through the sampled posts.
+// Two segments based on distance |t| from the center post:
+//   |t| < 1 (inner): smoothly blends the two nearest posts
+//   |t| < 2 (outer): tapers off the two flanking posts
 static double cubicWeight(double t)
 {
     t = std::abs(t);
@@ -17,11 +21,13 @@ static double cubicWeight(double t)
     return 0.0;
 }
 
+// Evaluates elevation at fractional post coordinates (frac_col, frac_row)
+// using a 4×4 neighborhood of posts. Weights are separable: w(col) * w(row).
 static double bicubicInterpolate(const DtedTile& tile, double frac_col, double frac_row)
 {
-    int c0 = static_cast<int>(std::floor(frac_col));
-    int r0 = static_cast<int>(std::floor(frac_row));
-    double dc = frac_col - c0;
+    int c0 = static_cast<int>(std::floor(frac_col)); // integer post to the left
+    int r0 = static_cast<int>(std::floor(frac_row)); // integer post below
+    double dc = frac_col - c0; // fractional offset within the cell, [0,1)
     double dr = frac_row - r0;
 
     double result = 0.0;
@@ -62,6 +68,7 @@ double DemDatabase::getElevation(double lat_deg, double lon_deg) const
             std::to_string(tile_lat) + " lon=" + std::to_string(tile_lon));
 
     const DtedTile& tile = it->second;
+    // Convert geographic coords to fractional post indices within this tile.
     double frac_col = (lon_deg - tile.origin_lon) / tile.post_spacing;
     double frac_row = (lat_deg - tile.origin_lat) / tile.post_spacing;
     return bicubicInterpolate(tile, frac_col, frac_row);
@@ -104,10 +111,12 @@ std::string DemDatabase::tileKey(int lat, int lon)
 int DemDatabase::loadTilesAround(const LLA& radar, double max_range_m,
                                   const std::string& tiles_dir, Format fmt)
 {
-    // Convert max_range to degrees for lat and lon axes
+    // Degrees of latitude spanned by max_range (constant — 1° lat ~ 111 km).
     const double lat_span = (max_range_m / EARTH_RADIUS) * RAD2DEG;
+    // Longitude span shrinks toward the poles: 1° lon = 111 km * cos(lat).
     const double lon_span = (max_range_m / (EARTH_RADIUS * std::cos(radar.lat_deg * DEG2RAD))) * RAD2DEG;
 
+    // Integer SW corners of all 1°×1° cells overlapping the bounding box.
     const int lat_min = static_cast<int>(std::floor(radar.lat_deg - lat_span));
     const int lat_max = static_cast<int>(std::floor(radar.lat_deg + lat_span));
     const int lon_min = static_cast<int>(std::floor(radar.lon_deg - lon_span));
