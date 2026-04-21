@@ -2,7 +2,8 @@ tiles/
 build/
 H36_preview/
 I36_preview/
-map_tiles/
+map_tiles/*
+!map_tiles/download_tiles.py
 *.zip
 *.exe
 radar_sea_level

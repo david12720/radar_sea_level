@@ -14,6 +14,10 @@
   - Max-range coverage circle around radar position
   - Startup health check with clear error banner if server is unreachable
 - `map_tiles/download_tiles.py` — parallel tile downloader for offline map setup
+  - `--max-zoom` argument to control highest zoom level downloaded (default: 16)
+  - `--bbox west south east north` argument for custom region (default: Israel)
+  - Resume support: re-running skips already-downloaded tiles instead of restarting
+  - Single persistent thread pool (no per-batch executor overhead, no inter-batch sleep)
 - C++ unit tests for `QueryHandler` (`tests/test_query_handler.cpp`)
 - Python integration tests for `RadarApiClient` (`gui/tests/test_api_client.py`)
 - Vendor headers: `cpp-httplib`, `nlohmann/json` (both header-only)

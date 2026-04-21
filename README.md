@@ -46,7 +46,7 @@ All C++ dependencies are **vendored** — no separate installs required:
 | What | Where to put it | How to get it |
 |------|----------------|---------------|
 | DEM elevation tiles (`.hgt`) | `tiles/` | [viewfinderpanoramas.org/dem3.html](https://viewfinderpanoramas.org/dem3.html) — free, no login |
-| Offline map tiles (`.mbtiles`) | `map_tiles/` | Run `pip install download-tiles` then `python map_tiles/download_tiles.py` (~106 MB) |
+| Offline map tiles (`.mbtiles`) | `map_tiles/` | Run `python map_tiles/download_tiles.py` (~106 MB for Israel) |
 
 ### Ports used
 
@@ -83,11 +83,15 @@ g++ -std=c++17 -O2 -Iinclude -Iapp -o radar_server \
 Download SRTM3 `.hgt` files for your area from [viewfinderpanoramas.org](https://viewfinderpanoramas.org/dem3.html) and place them in `tiles/`.
 Tile naming example: `N32E034.hgt`.
 
-**Step 3 — Download offline map tiles** (one-time, ~106 MB):
+**Step 3 — Download offline map tiles** (one-time, ~106 MB for Israel):
 ```bash
-pip install download-tiles
 python map_tiles/download_tiles.py
+
+# Other region or zoom level:
+python map_tiles/download_tiles.py --bbox -6.0 49.5 2.5 61.0 --max-zoom 14
 ```
+`--bbox west south east north` — bounding box in decimal degrees. Default: Israel.
+`--max-zoom` — highest zoom level to download (default: 16). Re-running resumes automatically.
 
 **Step 4 — Install Python dependencies**:
 ```bash
@@ -108,7 +112,7 @@ WSL:
 ```
 Wait for `[server] Listening on port 8080` before continuing.
 
-`--alt` sets radar altitude MSL in meters. `--max-range` sets the detection radius in meters. These values are read by the GUI at startup and shown when you click the radar marker on the map.
+`--alt` sets the radar height above local ground in meters (AGL). The server resolves altitude MSL automatically from the DEM — you do not need to know your elevation above sea level. `--max-range` sets the detection radius in meters.
 
 **Terminal 2 — Start the GUI** (Windows):
 ```bash
@@ -217,9 +221,11 @@ g++ -std=c++17 -O2 -Iinclude -Iapp -o radar_server \
 ### 1. Prepare offline map tiles (one-time)
 
 ```bash
-pip install download-tiles
-python map_tiles/download_tiles.py   # downloads ~106 MB for Israel region
+python map_tiles/download_tiles.py                          # Israel, z0-16 (default)
+python map_tiles/download_tiles.py --max-zoom 13            # lower zoom, fewer tiles
+python map_tiles/download_tiles.py --bbox W S E N          # custom region
 ```
+Re-running the script resumes from where it left off — already-downloaded tiles are skipped.
 
 ### 2. Prepare DEM tiles
 
@@ -228,11 +234,13 @@ Place `.hgt` files in `tiles/` following the SRTM naming convention: `N31E034.hg
 ### 3. Start the C++ server
 
 ```bash
-./radar_server [--lat 32.08] [--lon 34.76] [--alt 10] \
+./radar_server [--lat 32.08] [--lon 34.76] [--alt 0] \
                [--port 8080] [--tiles ./tiles/] [--max-range 50000]
 ```
 
 All arguments are optional — defaults to Tel Aviv coast, port 8080, 50 km range.
+
+`--alt` is the radar height **above local ground** in meters (AGL). The server automatically looks up the terrain elevation at the radar's lat/lon from the DEM and computes radar altitude MSL = terrain + `--alt`. You do not need to know your altitude above sea level.
 
 ### 4. Start the GUI
 
