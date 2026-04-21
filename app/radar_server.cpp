@@ -79,5 +79,6 @@ void RadarServer::start()
     });
 
     std::cout << "[server] Listening on port " << port_ << " — Ctrl-C to stop\n";
+    std::cout.flush();
     svr.listen("0.0.0.0", port_);
 }

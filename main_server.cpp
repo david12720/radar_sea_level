@@ -36,7 +36,9 @@ int main(int argc, char* argv[])
     std::cout << "[server] Radar position: lat=" << radar.lat_deg
               << " lon=" << radar.lon_deg << " alt=" << radar.alt_m << " m\n"
               << "[server] Max range: " << cfg.max_range_m << " m\n"
-              << "[server] Tiles dir: " << tiles_dir << "\n";
+              << "[server] Tiles dir: " << tiles_dir << "\n"
+              << "[server] Port: " << port << "\n";
+    std::cout.flush();
 
     QueryHandler handler(radar, cfg, tiles_dir);
     RadarServer  server(handler, port);

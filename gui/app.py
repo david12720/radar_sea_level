@@ -21,7 +21,7 @@ import map_view
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-DEFAULT_SERVER = "http://localhost:8080"
+DEFAULT_SERVER = "http://127.0.0.1:8080"
 DEFAULT_TILES  = os.path.join(_PROJECT_ROOT, "map_tiles", "israel.mbtiles")
 
 

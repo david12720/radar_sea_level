@@ -1,8 +1,10 @@
 #pragma once
 #include <cmath>
 
-inline constexpr double DEG2RAD      = M_PI / 180.0;
-inline constexpr double RAD2DEG      = 180.0 / M_PI;
+// M_PI is not guaranteed by the standard; define our own.
+inline constexpr double PI           = 3.14159265358979323846;
+inline constexpr double DEG2RAD      = PI / 180.0;
+inline constexpr double RAD2DEG      = 180.0 / PI;
 inline constexpr double EARTH_RADIUS = 6'371'000.0; // meters
 
 // SRTM HGT Level-1 (1 arc-second, ~30 m)

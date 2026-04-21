@@ -6,7 +6,7 @@ Only this file knows the server URL.
 import requests
 
 class RadarApiClient:
-    def __init__(self, base_url: str = "http://localhost:8080"):
+    def __init__(self, base_url: str = "http://127.0.0.1:8080"):
         self._base = base_url.rstrip("/")
 
     def health(self) -> bool:
