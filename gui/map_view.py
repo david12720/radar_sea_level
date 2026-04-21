@@ -84,20 +84,42 @@ def layout(radar_lat: float, radar_lon: float, radar_alt: float,
         weight=1,
     )
 
+    elevation_bar = html.Div(
+        id="elevation-bar",
+        children="Click on the map to see elevation",
+        style={
+            "position":        "absolute",
+            "bottom":          "24px",
+            "left":            "50%",
+            "transform":       "translateX(-50%)",
+            "zIndex":          1000,
+            "background":      "rgba(255,255,255,0.88)",
+            "padding":         "4px 12px",
+            "borderRadius":    "4px",
+            "fontSize":        "12px",
+            "fontFamily":      "monospace",
+            "boxShadow":       "0 1px 4px rgba(0,0,0,0.3)",
+            "pointerEvents":   "none",
+        },
+    )
+
     return html.Div(
-        dl.Map(
-            id="map",
-            center=[radar_lat, radar_lon],
-            zoom=RADAR_ZOOM,
-            children=[
-                dl.TileLayer(url=tile_url, attribution="© OpenStreetMap contributors"),
-                range_circle,
-                radar_marker,
-                dl.LayerGroup(id="target-layer"),
-            ],
-            style={"width": "100%", "height": "100%"},
-        ),
-        style={"flex": 1, "height": "100vh"},
+        [
+            dl.Map(
+                id="map",
+                center=[radar_lat, radar_lon],
+                zoom=RADAR_ZOOM,
+                children=[
+                    dl.TileLayer(url=tile_url, attribution="© OpenStreetMap contributors"),
+                    range_circle,
+                    radar_marker,
+                    dl.LayerGroup(id="target-layer"),
+                ],
+                style={"width": "100%", "height": "100%"},
+            ),
+            elevation_bar,
+        ],
+        style={"flex": 1, "height": "100vh", "position": "relative"},
     )
 
 

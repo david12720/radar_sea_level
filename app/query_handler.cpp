@@ -5,9 +5,17 @@
 QueryHandler::QueryHandler(const LLA& radar, const LutConfig& cfg, const std::string& tiles_dir)
     : radar_(radar), cfg_(cfg)
 {
-    DemDatabase dem;
-    dem.loadTilesAround(radar_, cfg_.max_range_m, tiles_dir, DemDatabase::Format::SRTM);
-    lut_.build(radar_, dem, cfg_);
+    dem_.loadTilesAround(radar_, cfg_.max_range_m, tiles_dir, DemDatabase::Format::SRTM);
+    lut_.build(radar_, dem_, cfg_);
+}
+
+double QueryHandler::getElevation(double lat_deg, double lon_deg) const
+{
+    try {
+        return dem_.getElevation(lat_deg, lon_deg);
+    } catch (...) {
+        return 0.0; // outside tile coverage — sea level
+    }
 }
 
 void QueryHandler::validate(const RadarQuery& q) const

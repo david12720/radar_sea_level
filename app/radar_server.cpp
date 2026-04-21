@@ -26,6 +26,23 @@ void RadarServer::start()
         res.set_content(out.dump(), "application/json");
     });
 
+    svr.Get("/elevation", [this](const httplib::Request& req, httplib::Response& res) {
+        if (!req.has_param("lat") || !req.has_param("lon")) {
+            res.status = 400;
+            res.set_content(R"({"error":"missing required params: lat, lon"})", "application/json");
+            return;
+        }
+        try {
+            double lat  = std::stod(req.get_param_value("lat"));
+            double lon  = std::stod(req.get_param_value("lon"));
+            double elev = handler_.getElevation(lat, lon);
+            res.set_content(json{{"elev_m", elev}}.dump(), "application/json");
+        } catch (...) {
+            res.status = 400;
+            res.set_content(R"({"error":"lat and lon must be valid numbers"})", "application/json");
+        }
+    });
+
     svr.Post("/query", [this](const httplib::Request& req, httplib::Response& res) {
         json body;
         try {

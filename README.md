@@ -141,7 +141,9 @@ Open **http://localhost:8050** in your browser.
    | 🟡 Yellow | 300–1000 m | Medium altitude |
    | 🟢 Green | > 1000 m | High altitude |
 
-5. **Click "Clear All"** to reset the map and start a new session.
+5. **Click anywhere on the map** to see the terrain elevation at that point — lat, lon, and elevation MSL appear in a bar at the bottom of the map.
+
+6. **Click "Clear All"** to reset the map and start a new session.
 
 The blue circle on the map shows the radar's maximum configured range. The blue marker at the center is the radar position.
 
@@ -294,6 +296,7 @@ Content-Type: application/json
 
 GET /health → { "status": "ok" }
 GET /radar  → { "lat_deg": ..., "lon_deg": ..., "alt_m": ..., "max_range_m": ... }
+GET /elevation?lat=32.08&lon=34.76 → { "elev_m": ... }   (0.0 if outside tile coverage)
 ```
 
 ## Output Fields
