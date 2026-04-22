@@ -55,13 +55,13 @@ def health():
     return {"status": "ok"}
 
 
-def start(mbtiles_path: str) -> str:
+def start(mbtiles_path: str, host: str = "127.0.0.1") -> str:
     global _db_path
     _db_path = os.path.abspath(mbtiles_path)   # resolve once, always absolute
     port = _free_port()
     thread = threading.Thread(
-        target=lambda: _app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False),
+        target=lambda: _app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False),
         daemon=True
     )
     thread.start()
-    return f"http://127.0.0.1:{port}/tiles/{{z}}/{{x}}/{{y}}.png"
+    return f"http://{host}:{port}/tiles/{{z}}/{{x}}/{{y}}.png"

@@ -307,6 +307,34 @@ GET /radar  → { "lat_deg": ..., "lon_deg": ..., "alt_m": ..., "max_range_m": .
 GET /elevation?lat=32.08&lon=34.76 → { "elev_m": ... }   (0.0 if outside tile coverage)
 ```
 
+## Validating Elevation Accuracy
+
+The system reads terrain elevation from SRTM DEM data. You can cross-check any point against an independent online source:
+
+**Open-Elevation API** (also SRTM-based, free, no login):
+```
+https://api.open-elevation.com/api/v1/lookup?locations=<lat>,<lon>
+```
+Example — Har Hiriya, Tel Aviv area:
+```
+https://api.open-elevation.com/api/v1/lookup?locations=32.02896,34.82118
+```
+Returns JSON: `{"results": [{"latitude": 32.02896, "longitude": 34.82118, "elevation": 68}]}`
+
+### Expected accuracy
+
+A difference of **2–5 m** between this system and Open-Elevation is normal and expected. Both use SRTM data but may differ due to:
+- Interpolation method (this system uses bicubic Catmull-Rom; Open-Elevation uses nearest-post)
+- Exact sample point within the tile
+
+A difference larger than ~10 m usually means the queried coordinate is near a tile boundary or a steep terrain feature where SRTM post spacing (90 m for SRTM3) limits precision.
+
+### Note on landmark labels vs. DEM elevation
+
+Map labels (e.g. "הר חירייה 75m") show the commonly cited or engineered height of a landmark — not necessarily what the SRTM satellite measured. Har Hiriya, for example, is a man-made landfill hill; its SRTM-measured terrain height (~66–68 m) is lower than the engineering design figure (75 m) cited on the map. This is expected and does not indicate an error in the system.
+
+---
+
 ## Output Fields
 
 | Field | Description |

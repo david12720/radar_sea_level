@@ -17,7 +17,7 @@ import threading
 import concurrent.futures
 import urllib.request
 
-OUTPUT     = "map_tiles/israel.mbtiles"
+OUTPUT     = os.path.join(os.path.dirname(os.path.abspath(__file__)), "israel.mbtiles")
 TILE_URL   = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
 USER_AGENT = "radar-sea-level-app/1.0 (offline map for private radar system)"
 
@@ -59,7 +59,8 @@ def _xyz_to_tms_y(y: int, z: int) -> int:
     return (1 << z) - 1 - y
 
 
-def _init_db(con: sqlite3.Connection) -> None:
+def _init_db(con: sqlite3.Connection, bbox_w: float, bbox_s: float,
+             bbox_e: float, bbox_n: float) -> None:
     con.execute("PRAGMA journal_mode=WAL")
     con.execute("""CREATE TABLE IF NOT EXISTS tiles (
         zoom_level INTEGER, tile_column INTEGER, tile_row INTEGER, tile_data BLOB,
@@ -101,7 +102,7 @@ def main():
     os.makedirs(os.path.dirname(OUTPUT), exist_ok=True)
 
     con = sqlite3.connect(OUTPUT)
-    _init_db(con)
+    _init_db(con, bbox_w, bbox_s, bbox_e, bbox_n)
 
     # Resume: load set of already-downloaded (z, x, tms_y) keys
     existing = set(con.execute(

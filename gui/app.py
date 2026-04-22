@@ -19,16 +19,18 @@ import api_client as ac
 import controls
 import map_view
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_GUI_DIR = os.path.dirname(os.path.abspath(__file__))
 
 DEFAULT_SERVER = "http://127.0.0.1:8080"
-DEFAULT_TILES  = os.path.join(_PROJECT_ROOT, "map_tiles", "israel.mbtiles")
+DEFAULT_TILES  = os.path.join(_GUI_DIR, "map_tiles", "israel.mbtiles")
 
 
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--server", default=DEFAULT_SERVER)
     p.add_argument("--tiles",  default=DEFAULT_TILES)
+    p.add_argument("--host",   default="127.0.0.1",
+                   help="IP address remote browsers will use to reach this machine")
     return p.parse_args()
 
 
@@ -36,7 +38,7 @@ def main():
     args = parse_args()
 
     # ── Tile server ───────────────────────────────────────────────────────────
-    tile_url = ts.start(args.tiles)
+    tile_url = ts.start(args.tiles, host=args.host)
     time.sleep(0.5)  # let Flask thread bind
 
     # ── API client + startup health check ────────────────────────────────────
@@ -130,7 +132,7 @@ def main():
         except RuntimeError:
             return f"Lat: {lat:.5f}°  |  Lon: {lon:.5f}°  |  Elev: N/A"
 
-    app.run(debug=False, host="127.0.0.1", port=8050)
+    app.run(debug=False, host="0.0.0.0", port=8050)
 
 
 if __name__ == "__main__":
