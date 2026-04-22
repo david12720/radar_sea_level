@@ -65,7 +65,7 @@ def _radar_popup(lat: float, lon: float, alt: float, ground: float, agl: float) 
 
 def layout(radar_lat: float, radar_lon: float, radar_alt: float,
            radar_ground: float, radar_agl: float,
-           max_range_m: float, tile_url: str) -> html.Div:
+           max_range_m: float, tile_url: str, max_native_zoom: int = 16) -> html.Div:
     radar_marker = dl.Marker(
         position=[radar_lat, radar_lon],
         children=[
@@ -114,7 +114,8 @@ def layout(radar_lat: float, radar_lon: float, radar_alt: float,
                 center=[radar_lat, radar_lon],
                 zoom=RADAR_ZOOM,
                 children=[
-                    dl.TileLayer(url=tile_url, attribution="© OpenStreetMap contributors"),
+                    dl.TileLayer(url=tile_url, attribution="© OpenStreetMap contributors",
+                                maxNativeZoom=max_native_zoom, maxZoom=max_native_zoom + 4),
                     range_circle,
                     radar_marker,
                     dl.LayerGroup(id="target-layer"),

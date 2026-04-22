@@ -9,6 +9,7 @@ Radar position and max range are fetched from the C++ server at startup.
 
 import argparse
 import os
+import sqlite3
 import sys
 import time
 from dash import Dash, Input, Output, State, callback, dcc, html, no_update
@@ -41,6 +42,10 @@ def main():
     tile_url = ts.start(args.tiles, host=args.host)
     time.sleep(0.5)  # let Flask thread bind
 
+    with sqlite3.connect(args.tiles) as _con:
+        _row = _con.execute("SELECT MAX(zoom_level) FROM tiles").fetchone()
+    max_native_zoom = int(_row[0]) if _row and _row[0] is not None else 16
+
     # ── API client + startup health check ────────────────────────────────────
     client = ac.RadarApiClient(args.server)
     server_ok = client.health()
@@ -71,7 +76,7 @@ def main():
         dcc.Store(id="targets-store", data=[]),
         dcc.Store(id="target-counter", data=0),
         controls.layout(),
-        map_view.layout(radar_lat, radar_lon, radar_alt, radar_ground, radar_agl, max_range_m, tile_url),
+        map_view.layout(radar_lat, radar_lon, radar_alt, radar_ground, radar_agl, max_range_m, tile_url, max_native_zoom),
     ], style={"display": "flex", "height": "100vh", "overflow": "hidden"})
 
     @callback(
