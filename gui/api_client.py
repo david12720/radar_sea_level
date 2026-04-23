@@ -1,11 +1,12 @@
 """
-HTTP client for the C++ radar server and optional Open Elevation API.
+HTTP client for the C++ radar server and optional elevation APIs.
 Only this file knows the server URLs.
 """
 
 import requests
 
 OPEN_ELEVATION_URL = "https://api.open-elevation.com/api/v1/lookup"
+OPEN_METEO_URL     = "https://api.open-meteo.com/v1/elevation"
 
 
 def ping_open_elevation(timeout: float = 3.0) -> bool:
@@ -20,10 +21,7 @@ def ping_open_elevation(timeout: float = 3.0) -> bool:
 
 
 def get_open_elevation(lat: float, lon: float, timeout: float = 5.0) -> float:
-    """
-    Returns terrain elevation MSL (m) from Open Elevation API.
-    Raises RuntimeError on failure.
-    """
+    """Returns terrain elevation MSL (m) from Open Elevation API (SRTM)."""
     try:
         r = requests.post(OPEN_ELEVATION_URL,
                           json={"locations": [{"latitude": lat, "longitude": lon}]},
@@ -36,6 +34,22 @@ def get_open_elevation(lat: float, lon: float, timeout: float = 5.0) -> float:
         return float(r.json()["results"][0]["elevation"])
     except (KeyError, IndexError, ValueError) as e:
         raise RuntimeError(f"Unexpected Open Elevation response: {e}") from e
+
+
+def get_open_meteo_elevation(lat: float, lon: float, timeout: float = 5.0) -> float:
+    """Returns terrain elevation MSL (m) from Open-Meteo API (Copernicus DEM 90m)."""
+    try:
+        r = requests.get(OPEN_METEO_URL,
+                         params={"latitude": lat, "longitude": lon},
+                         timeout=timeout)
+    except requests.RequestException as e:
+        raise RuntimeError(f"Open-Meteo unreachable: {e}") from e
+    if r.status_code != 200:
+        raise RuntimeError(f"Open-Meteo error {r.status_code}: {r.text}")
+    try:
+        return float(r.json()["elevation"][0])
+    except (KeyError, IndexError, ValueError) as e:
+        raise RuntimeError(f"Unexpected Open-Meteo response: {e}") from e
 
 class RadarApiClient:
     def __init__(self, base_url: str = "http://127.0.0.1:8080"):

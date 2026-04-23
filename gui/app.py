@@ -144,11 +144,15 @@ def main():
             return no_update, no_update, str(e)
 
         if online_mode and use_open_elev:
+            lat_t, lon_t = result["lat_deg"], result["lon_deg"]
             try:
-                result["open_elevation_m"] = ac.get_open_elevation(
-                    result["lat_deg"], result["lon_deg"])
+                result["open_elevation_m"] = ac.get_open_elevation(lat_t, lon_t)
             except RuntimeError:
                 result["open_elevation_m"] = None
+            try:
+                result["open_meteo_elevation_m"] = ac.get_open_meteo_elevation(lat_t, lon_t)
+            except RuntimeError:
+                result["open_meteo_elevation_m"] = None
 
         counter += 1
         result["id"]            = counter
