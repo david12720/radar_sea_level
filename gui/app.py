@@ -58,13 +58,22 @@ def main():
             html.H2("⚠ Radar server not reachable", style={"color": "red"}),
             html.P(f"Could not connect to {args.server}"),
             html.P("Start the C++ server first:"),
-            html.Pre("./radar_server --lat <lat> --lon <lon>",
+            html.Pre("./radar_server",
+                     style={"backgroundColor": "#eee", "padding": "12px"}),
+            html.P("Then set the radar position:"),
+            html.Pre('curl -X POST http://localhost:8080/radar \\\n'
+                     '  -H "Content-Type: application/json" \\\n'
+                     '  -d \'{"lat_deg":32.08,"lon_deg":34.76,"alt_msl_m":10}\'',
                      style={"backgroundColor": "#eee", "padding": "12px"}),
         ], style={"padding": "40px", "fontFamily": "sans-serif"})
         app.run(debug=False)
         return
 
-    radar = client.radar_info()
+    try:
+        radar = client.radar_info()
+    except RuntimeError:
+        radar = {"lat_deg": 32.08, "lon_deg": 34.76, "alt_m": 0,
+                 "ground_elev_m": 0, "agl_m": 0, "max_range_m": 50000}
     radar_lat        = radar["lat_deg"]
     radar_lon        = radar["lon_deg"]
     radar_alt        = radar["alt_m"]

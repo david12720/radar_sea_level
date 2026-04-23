@@ -17,15 +17,65 @@ void RadarServer::start()
     });
 
     svr.Get("/radar", [this](const httplib::Request&, httplib::Response& res) {
+        if (!handler_.radarSet()) {
+            res.status = 404;
+            res.set_content(R"({"error":"radar position not set — call POST /radar first"})",
+                            "application/json");
+            return;
+        }
         const LLA& r = handler_.radar();
         double ground_elev = handler_.getElevation(r.lat_deg, r.lon_deg);
         json out;
-        out["lat_deg"]      = r.lat_deg;
-        out["lon_deg"]      = r.lon_deg;
-        out["alt_m"]        = r.alt_m;
-        out["ground_elev_m"]= ground_elev;
-        out["agl_m"]        = r.alt_m - ground_elev;
-        out["max_range_m"]  = handler_.config().max_range_m;
+        out["lat_deg"]       = r.lat_deg;
+        out["lon_deg"]       = r.lon_deg;
+        out["alt_m"]         = r.alt_m;
+        out["ground_elev_m"] = ground_elev;
+        out["agl_m"]         = r.alt_m - ground_elev;
+        out["max_range_m"]   = handler_.maxRange();
+        res.set_content(out.dump(), "application/json");
+    });
+
+    svr.Post("/radar", [this](const httplib::Request& req, httplib::Response& res) {
+        json body;
+        try {
+            body = json::parse(req.body);
+        } catch (...) {
+            res.status = 400;
+            res.set_content(R"({"error":"bad request: invalid JSON"})", "application/json");
+            return;
+        }
+        if (!body.contains("lat_deg") || !body.contains("lon_deg") || !body.contains("alt_msl_m")) {
+            res.status = 400;
+            res.set_content(R"({"error":"bad request: required fields: lat_deg, lon_deg, alt_msl_m"})",
+                            "application/json");
+            return;
+        }
+        double lat, lon, alt;
+        try {
+            lat = body.at("lat_deg").get<double>();
+            lon = body.at("lon_deg").get<double>();
+            alt = body.at("alt_msl_m").get<double>();
+        } catch (...) {
+            res.status = 400;
+            res.set_content(R"({"error":"bad request: fields must be numbers"})", "application/json");
+            return;
+        }
+        bool ok = handler_.setRadar(lat, lon, alt);
+        if (!ok) {
+            res.status = 422;
+            res.set_content(R"({"error":"no DEM tiles found for that position — check tiles directory"})",
+                            "application/json");
+            return;
+        }
+        const LLA& r = handler_.radar();
+        double ground_elev = handler_.getElevation(r.lat_deg, r.lon_deg);
+        json out;
+        out["lat_deg"]       = r.lat_deg;
+        out["lon_deg"]       = r.lon_deg;
+        out["alt_m"]         = r.alt_m;
+        out["ground_elev_m"] = ground_elev;
+        out["agl_m"]         = r.alt_m - ground_elev;
+        out["max_range_m"]   = handler_.maxRange();
         res.set_content(out.dump(), "application/json");
     });
 
@@ -74,16 +124,31 @@ void RadarServer::start()
         }
 
         try {
-            TargetResult r = handler_.handle(q);
+            TargetResult r;
+            if (body.contains("ground_elevation_m")) {
+                // Client holds a height map — use provided value, skip DEM lookup.
+                if (!handler_.radarSet())
+                    throw RadarNotSetError("radar position not set");
+                double ground_elev = body.at("ground_elevation_m").get<double>();
+                RadarMeasurement meas { q.range_m, q.azimuth_deg, q.elevation_deg };
+                r = computeTargetSeaLevel(handler_.radar(), meas, ground_elev);
+                double elev_to_gnd = elevationToGround(handler_.radar(), r.horizontal_range_m, ground_elev);
+                r.relative_elevation_deg = relativeElevation(q.elevation_deg, elev_to_gnd);
+            } else {
+                r = handler_.handle(q);
+            }
             json out;
-            out["lat_deg"]          = r.position.lat_deg;
-            out["lon_deg"]          = r.position.lon_deg;
-            out["alt_msl_m"]        = r.position.alt_m;
-            out["ground_elev_m"]    = r.ground_elevation_m;
-            out["agl_m"]            = r.target_height_agl_m;
-            out["horiz_range_m"]    = r.horizontal_range_m;
-            out["relative_elev_deg"]= r.relative_elevation_deg;
+            out["lat_deg"]           = r.position.lat_deg;
+            out["lon_deg"]           = r.position.lon_deg;
+            out["alt_msl_m"]         = r.position.alt_m;
+            out["ground_elev_m"]     = r.ground_elevation_m;
+            out["agl_m"]             = r.target_height_agl_m;
+            out["horiz_range_m"]     = r.horizontal_range_m;
+            out["relative_elev_deg"] = r.relative_elevation_deg;
             res.set_content(out.dump(), "application/json");
+        } catch (const RadarNotSetError& e) {
+            res.status = 503;
+            res.set_content(json{{"error", std::string(e.what())}}.dump(), "application/json");
         } catch (const ValidationError& e) {
             res.status = 400;
             res.set_content(json{{"error", std::string("validation failed: ") + e.what()}}.dump(),

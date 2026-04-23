@@ -52,3 +52,14 @@ TargetResult computeTargetSeaLevel(const LLA& radar,
     res.target_height_agl_m = res.position.alt_m - res.ground_elevation_m;
     return res;
 }
+
+// Caller-provided overload — no DEM or LUT access; used when the client holds a height map.
+TargetResult computeTargetSeaLevel(const LLA& radar,
+                                   const RadarMeasurement& meas,
+                                   double ground_elevation_m)
+{
+    TargetResult res        = computeGeometry(radar, meas);
+    res.ground_elevation_m  = ground_elevation_m;
+    res.target_height_agl_m = res.position.alt_m - ground_elevation_m;
+    return res;
+}

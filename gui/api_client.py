@@ -18,7 +18,7 @@ class RadarApiClient:
 
     def radar_info(self) -> dict:
         """
-        Returns dict with keys: lat_deg, lon_deg, alt_m, max_range_m
+        Returns dict with keys: lat_deg, lon_deg, alt_m, ground_elev_m, agl_m, max_range_m
         Raises RuntimeError on failure.
         """
         try:
@@ -28,6 +28,24 @@ class RadarApiClient:
         if r.status_code == 200:
             return r.json()
         raise RuntimeError(f"Server error {r.status_code}: {r.text}")
+
+    def set_radar(self, lat_deg: float, lon_deg: float, alt_msl_m: float) -> dict:
+        """
+        Sets radar position (MSL). Returns same dict as radar_info().
+        Raises RuntimeError on failure.
+        """
+        payload = {"lat_deg": lat_deg, "lon_deg": lon_deg, "alt_msl_m": alt_msl_m}
+        try:
+            r = requests.post(f"{self._base}/radar", json=payload, timeout=10)
+        except requests.RequestException as e:
+            raise RuntimeError(f"Cannot reach radar server at {self._base}: {e}") from e
+        if r.status_code == 200:
+            return r.json()
+        try:
+            msg = r.json().get("error", r.text)
+        except Exception:
+            msg = r.text
+        raise RuntimeError(f"Server error {r.status_code}: {msg}")
 
     def get_elevation(self, lat_deg: float, lon_deg: float) -> float:
         """Returns terrain elevation MSL in meters. Raises RuntimeError on failure."""
@@ -44,9 +62,12 @@ class RadarApiClient:
             msg = r.text
         raise RuntimeError(f"Server error {r.status_code}: {msg}")
 
-    def query(self, range_m: float, azimuth_deg: float, elevation_deg: float) -> dict:
+    def query(self, range_m: float, azimuth_deg: float, elevation_deg: float,
+              ground_elevation_m: float = None) -> dict:
         """
-        Returns dict with keys: lat_deg, lon_deg, alt_msl_m, ground_elev_m, agl_m, horiz_range_m
+        Returns dict with keys: lat_deg, lon_deg, alt_msl_m, ground_elev_m, agl_m,
+                                horiz_range_m, relative_elev_deg
+        If ground_elevation_m is provided, the server uses it directly (no DEM lookup).
         Raises RuntimeError with a user-facing message on 4xx/5xx or connection failure.
         """
         payload = {
@@ -54,6 +75,8 @@ class RadarApiClient:
             "azimuth_deg":   azimuth_deg,
             "elevation_deg": elevation_deg,
         }
+        if ground_elevation_m is not None:
+            payload["ground_elevation_m"] = ground_elevation_m
         try:
             r = requests.post(f"{self._base}/query", json=payload, timeout=5)
         except requests.RequestException as e:
@@ -62,7 +85,6 @@ class RadarApiClient:
         if r.status_code == 200:
             return r.json()
 
-        # Server returned a structured error
         try:
             msg = r.json().get("error", r.text)
         except Exception:
