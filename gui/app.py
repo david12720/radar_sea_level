@@ -47,8 +47,11 @@ def main():
     # ── API client + startup health check ────────────────────────────────────
     client = ac.RadarApiClient(args.server)
     server_ok = client.health()
+    print(f"[gui] Radar server ({args.server}): {'OK' if server_ok else 'UNREACHABLE'}")
+
+    print("[gui] Checking Open Elevation API connectivity...")
     online_mode = ac.ping_open_elevation()
-    print(f"[gui] Online mode (Open Elevation API): {online_mode}")
+    print(f"[gui] Open Elevation API: {'ONLINE' if online_mode else 'OFFLINE (checkbox disabled)'}")
 
     # ── Dash app ──────────────────────────────────────────────────────────────
     app = Dash(__name__, suppress_callback_exceptions=True)

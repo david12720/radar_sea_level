@@ -71,16 +71,22 @@ def layout(online_mode: bool = False) -> html.Div:
             tooltip={"placement": "bottom", "always_visible": True},
         ),
 
-        html.Div(
+        html.Div([
             dcc.Checklist(
                 id="chk-open-elevation",
                 options=[{"label": " Use Open Elevation API", "value": "on"}],
                 value=[],
-                style={"fontSize": "13px"},
+                style={"fontSize": "13px",
+                       "color": "#333" if online_mode else "#aaa"},
+                inputStyle={"cursor": "pointer" if online_mode else "not-allowed"},
+                **({"disabled": True} if not online_mode else {}),
             ),
-            style={"marginBottom": "10px",
-                   "display": "block" if online_mode else "none"},
-        ),
+            html.Span(
+                "● Online" if online_mode else "● Offline",
+                style={"fontSize": "11px", "marginLeft": "6px",
+                       "color": "green" if online_mode else "#aaa"},
+            ),
+        ], style={"marginBottom": "10px", "display": "flex", "alignItems": "center"}),
 
         html.Br(),
         html.Div([
