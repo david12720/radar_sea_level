@@ -80,6 +80,8 @@ def main():
         Output("radar-store",      "data"),
         Output("radar-status-msg", "children"),
         Output("radar-status-msg", "style"),
+        Output("targets-store",    "data",  allow_duplicate=True),
+        Output("target-counter",   "data",  allow_duplicate=True),
         Input("btn-set-radar",     "n_clicks"),
         State("input-lat",         "value"),
         State("input-lon",         "value"),
@@ -88,19 +90,19 @@ def main():
     )
     def set_radar(n_clicks, lat, lon, alt):
         if not lat or not lon or alt is None:
-            return no_update, "Please fill in all fields.", {"color": "red", "fontSize": "12px"}
+            return no_update, "Please fill in all fields.", {"color": "red", "fontSize": "12px"}, no_update, no_update
         try:
             lat_f = float(lat)
             lon_f = float(lon)
         except (ValueError, TypeError):
-            return no_update, "Latitude and longitude must be valid numbers.", {"color": "red", "fontSize": "12px"}
+            return no_update, "Latitude and longitude must be valid numbers.", {"color": "red", "fontSize": "12px"}, no_update, no_update
         try:
             radar = client.set_radar(lat_f, lon_f, float(alt))
             msg   = f"Radar set: {lat_f:.6f}°, {lon_f:.6f}°, {float(alt):.1f} m MSL"
             style = {"color": "green", "fontSize": "12px"}
-            return radar, msg, style
+            return radar, msg, style, [], 0
         except RuntimeError as e:
-            return no_update, str(e), {"color": "red", "fontSize": "12px"}
+            return no_update, str(e), {"color": "red", "fontSize": "12px"}, no_update, no_update
 
     # ── Update radar layer when radar-store changes ───────────────────────────
     @callback(
