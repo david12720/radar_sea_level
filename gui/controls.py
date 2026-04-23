@@ -15,17 +15,17 @@ def layout() -> html.Div:
         html.H3("Radar Position", style={"marginBottom": "12px"}),
 
         html.Label("Latitude (°)"),
-        dcc.Input(id="input-lat", type="text", placeholder="e.g. 32.08",
+        dcc.Input(id="input-lat", type="text", value="31.860342182745416",
                   debounce=True,
                   style={"width": "100%", "marginBottom": "8px", "padding": "4px"}),
 
         html.Label("Longitude (°)"),
-        dcc.Input(id="input-lon", type="text", placeholder="e.g. 34.76",
+        dcc.Input(id="input-lon", type="text", value="34.91973316662749",
                   debounce=True,
                   style={"width": "100%", "marginBottom": "8px", "padding": "4px"}),
 
         html.Label("Altitude MSL (m)"),
-        dcc.Input(id="input-alt-msl", type="number", placeholder="e.g. 10",
+        dcc.Input(id="input-alt-msl", type="number", value=0,
                   debounce=True, step=1,
                   style={"width": "100%", "marginBottom": "10px", "padding": "4px"}),
 
