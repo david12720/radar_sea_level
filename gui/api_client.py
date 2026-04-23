@@ -1,9 +1,41 @@
 """
-HTTP client for the C++ radar server.
-Only this file knows the server URL.
+HTTP client for the C++ radar server and optional Open Elevation API.
+Only this file knows the server URLs.
 """
 
 import requests
+
+OPEN_ELEVATION_URL = "https://api.open-elevation.com/api/v1/lookup"
+
+
+def ping_open_elevation(timeout: float = 3.0) -> bool:
+    """Returns True if the Open Elevation API is reachable."""
+    try:
+        r = requests.post(OPEN_ELEVATION_URL,
+                          json={"locations": [{"latitude": 0, "longitude": 0}]},
+                          timeout=timeout)
+        return r.status_code == 200
+    except requests.RequestException:
+        return False
+
+
+def get_open_elevation(lat: float, lon: float, timeout: float = 5.0) -> float:
+    """
+    Returns terrain elevation MSL (m) from Open Elevation API.
+    Raises RuntimeError on failure.
+    """
+    try:
+        r = requests.post(OPEN_ELEVATION_URL,
+                          json={"locations": [{"latitude": lat, "longitude": lon}]},
+                          timeout=timeout)
+    except requests.RequestException as e:
+        raise RuntimeError(f"Open Elevation unreachable: {e}") from e
+    if r.status_code != 200:
+        raise RuntimeError(f"Open Elevation error {r.status_code}: {r.text}")
+    try:
+        return float(r.json()["results"][0]["elevation"])
+    except (KeyError, IndexError, ValueError) as e:
+        raise RuntimeError(f"Unexpected Open Elevation response: {e}") from e
 
 class RadarApiClient:
     def __init__(self, base_url: str = "http://127.0.0.1:8080"):

@@ -38,6 +38,11 @@ def _target_popup(t: dict) -> html.Div:
             row("Range",      f"{t['horiz_range_m']:.0f} m"),
             row("Az / El",    f"{t['azimuth_deg']:.1f}° / {t['elevation_deg']:.1f}°"),
             row("Rel El",     f"{t['relative_elev_deg']:.2f}°"),
+            *([ row("Open Elev ⟂",
+                    f"{t['open_elevation_m']:.1f} m"
+                    if t.get('open_elevation_m') is not None
+                    else "N/A") ]
+              if "open_elevation_m" in t else []),
         ], style={"borderCollapse": "collapse"}),
     ], style={"minWidth": "220px"})
 

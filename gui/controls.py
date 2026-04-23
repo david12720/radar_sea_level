@@ -8,7 +8,7 @@ from dash import dcc, html
 MAX_RANGE_M = 50000
 
 
-def layout() -> html.Div:
+def layout(online_mode: bool = False) -> html.Div:
     return html.Div([
 
         # ── Radar position ────────────────────────────────────────────────────
@@ -69,6 +69,17 @@ def layout() -> html.Div:
             value=0,
             marks={-10: "-10°", 0: "0°", 20: "20°", 45: "45°"},
             tooltip={"placement": "bottom", "always_visible": True},
+        ),
+
+        html.Div(
+            dcc.Checklist(
+                id="chk-open-elevation",
+                options=[{"label": " Use Open Elevation API", "value": "on"}],
+                value=[],
+                style={"fontSize": "13px"},
+            ),
+            style={"marginBottom": "10px",
+                   "display": "block" if online_mode else "none"},
         ),
 
         html.Br(),

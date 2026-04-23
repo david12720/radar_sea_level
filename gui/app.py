@@ -47,6 +47,8 @@ def main():
     # ── API client + startup health check ────────────────────────────────────
     client = ac.RadarApiClient(args.server)
     server_ok = client.health()
+    online_mode = ac.ping_open_elevation()
+    print(f"[gui] Online mode (Open Elevation API): {online_mode}")
 
     # ── Dash app ──────────────────────────────────────────────────────────────
     app = Dash(__name__, suppress_callback_exceptions=True)
@@ -71,7 +73,7 @@ def main():
         dcc.Store(id="radar-store",   data=initial_radar),
         dcc.Store(id="targets-store", data=[]),
         dcc.Store(id="target-counter", data=0),
-        controls.layout(),
+        controls.layout(online_mode),
         map_view.layout(initial_radar, tile_url, max_native_zoom),
     ], style={"display": "flex", "height": "100vh", "overflow": "hidden"})
 
@@ -122,12 +124,13 @@ def main():
         State("input-range",     "value"),
         State("input-azimuth",   "value"),
         State("input-elevation", "value"),
+        State("chk-open-elevation", "value"),
         State("targets-store",   "data"),
         State("target-counter",  "data"),
         prevent_initial_call=True,
     )
     def handle_buttons(add_clicks, clear_clicks, range_m, azimuth, elevation,
-                       targets, counter):
+                       use_open_elev, targets, counter):
         from dash import ctx
         if ctx.triggered_id == "btn-clear":
             return [], 0, ""
@@ -136,6 +139,13 @@ def main():
             result = client.query(range_m, azimuth, elevation)
         except RuntimeError as e:
             return no_update, no_update, str(e)
+
+        if online_mode and use_open_elev:
+            try:
+                result["open_elevation_m"] = ac.get_open_elevation(
+                    result["lat_deg"], result["lon_deg"])
+            except RuntimeError:
+                result["open_elevation_m"] = None
 
         counter += 1
         result["id"]            = counter
