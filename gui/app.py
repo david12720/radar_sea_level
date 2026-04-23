@@ -87,11 +87,16 @@ def main():
         prevent_initial_call=True,
     )
     def set_radar(n_clicks, lat, lon, alt):
-        if lat is None or lon is None or alt is None:
+        if not lat or not lon or alt is None:
             return no_update, "Please fill in all fields.", {"color": "red", "fontSize": "12px"}
         try:
-            radar = client.set_radar(lat, lon, alt)
-            msg   = f"Radar set: {lat:.4f}°, {lon:.4f}°, {alt:.1f} m MSL"
+            lat_f = float(lat)
+            lon_f = float(lon)
+        except (ValueError, TypeError):
+            return no_update, "Latitude and longitude must be valid numbers.", {"color": "red", "fontSize": "12px"}
+        try:
+            radar = client.set_radar(lat_f, lon_f, float(alt))
+            msg   = f"Radar set: {lat_f:.6f}°, {lon_f:.6f}°, {float(alt):.1f} m MSL"
             style = {"color": "green", "fontSize": "12px"}
             return radar, msg, style
         except RuntimeError as e:

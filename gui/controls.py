@@ -15,13 +15,13 @@ def layout() -> html.Div:
         html.H3("Radar Position", style={"marginBottom": "12px"}),
 
         html.Label("Latitude (°)"),
-        dcc.Input(id="input-lat", type="number", placeholder="e.g. 32.08",
-                  debounce=True, step=0.0001,
+        dcc.Input(id="input-lat", type="text", placeholder="e.g. 32.08",
+                  debounce=True,
                   style={"width": "100%", "marginBottom": "8px", "padding": "4px"}),
 
         html.Label("Longitude (°)"),
-        dcc.Input(id="input-lon", type="number", placeholder="e.g. 34.76",
-                  debounce=True, step=0.0001,
+        dcc.Input(id="input-lon", type="text", placeholder="e.g. 34.76",
+                  debounce=True,
                   style={"width": "100%", "marginBottom": "8px", "padding": "4px"}),
 
         html.Label("Altitude MSL (m)"),
