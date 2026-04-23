@@ -25,13 +25,14 @@ static double cubicWeight(double t)
 // using a 4×4 neighborhood of posts. Weights are separable: w(col) * w(row).
 static double bicubicInterpolate(const DtedTile& tile, double frac_col, double frac_row)
 {
-    int c0 = static_cast<int>(std::floor(frac_col)); // integer post to the left
-    int r0 = static_cast<int>(std::floor(frac_row)); // integer post below
-    double dc = frac_col - c0; // fractional offset within the cell, [0,1)
+    int c0 = static_cast<int>(std::floor(frac_col)); // post just west  of query
+    int r0 = static_cast<int>(std::floor(frac_row)); // post just south of query
+    double dc = frac_col - c0; // fractional offset within cell [0,1)
     double dr = frac_row - r0;
 
     double result = 0.0;
     for (int ci = -1; ci <= 2; ++ci) {
+        // ci - dc = signed distance from the query to post (c0+ci): ranges from -1-dc to 2-dc
         double wc = cubicWeight(ci - dc);
         for (int ri = -1; ri <= 2; ++ri)
             result += wc * cubicWeight(ri - dr) * tile.postElevation(c0 + ci, r0 + ri);
@@ -78,6 +79,7 @@ void DemDatabase::loadTile(const std::string& filepath, int origin_lat, int orig
 
 double DemDatabase::getElevation(double lat_deg, double lon_deg) const
 {
+    // floor gives the SW corner of the 1°×1° tile that contains this point.
     int tile_lat = static_cast<int>(std::floor(lat_deg));
     int tile_lon = static_cast<int>(std::floor(lon_deg));
 
