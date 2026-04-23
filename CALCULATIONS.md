@@ -216,6 +216,8 @@ num_azimuths = round(360 / az_step_deg)
 
 Example: 60 km range @ 15 m step, 0.1° az step → 4001 × 3600 = 14.4 M cells × 4 bytes = **57.6 MB**.
 
+> **Note — SRTM-3 resolution vs step sizes:** SRTM-3 posts are spaced ~90 m apart. A 15 m range step creates ~6 LUT bins per real data interval; bicubic interpolation keeps them smooth but adds no genuine terrain detail beyond ~90 m. Matching the range step to ~90 m would reduce memory to ~10 MB and build time by 6×, with negligible elevation error (terrain slopes are gradual). The 0.1° azimuth step ≈ 105 m arc at 60 km — already well matched to SRTM-3 spacing.
+
 ### Build Loop
 
 ```
