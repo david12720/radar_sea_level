@@ -1,5 +1,5 @@
 """
-Input panel layout — range, azimuth, elevation controls + action buttons.
+Input panel layout — radar position form + target query controls.
 Returns a Dash component; has no server or map knowledge.
 """
 
@@ -10,7 +10,37 @@ MAX_RANGE_M = 50000
 
 def layout() -> html.Div:
     return html.Div([
-        html.H3("Radar Query", style={"marginBottom": "16px"}),
+
+        # ── Radar position ────────────────────────────────────────────────────
+        html.H3("Radar Position", style={"marginBottom": "12px"}),
+
+        html.Label("Latitude (°)"),
+        dcc.Input(id="input-lat", type="number", placeholder="e.g. 32.08",
+                  debounce=True, step=0.0001,
+                  style={"width": "100%", "marginBottom": "8px", "padding": "4px"}),
+
+        html.Label("Longitude (°)"),
+        dcc.Input(id="input-lon", type="number", placeholder="e.g. 34.76",
+                  debounce=True, step=0.0001,
+                  style={"width": "100%", "marginBottom": "8px", "padding": "4px"}),
+
+        html.Label("Altitude MSL (m)"),
+        dcc.Input(id="input-alt-msl", type="number", placeholder="e.g. 10",
+                  debounce=True, step=1,
+                  style={"width": "100%", "marginBottom": "10px", "padding": "4px"}),
+
+        html.Button("Set Radar", id="btn-set-radar", n_clicks=0,
+                    style={"width": "100%", "padding": "8px",
+                           "backgroundColor": "#34a853", "color": "white",
+                           "border": "none", "borderRadius": "4px", "cursor": "pointer"}),
+
+        html.Div(id="radar-status-msg",
+                 style={"marginTop": "6px", "fontSize": "12px", "minHeight": "18px"}),
+
+        html.Hr(style={"margin": "16px 0"}),
+
+        # ── Target query ──────────────────────────────────────────────────────
+        html.H3("Target Query", style={"marginBottom": "16px"}),
 
         html.Label("Range (m)"),
         dcc.Slider(
@@ -47,7 +77,7 @@ def layout() -> html.Div:
                         style={"marginRight": "12px", "padding": "8px 20px",
                                "backgroundColor": "#1a73e8", "color": "white",
                                "border": "none", "borderRadius": "4px", "cursor": "pointer"}),
-            html.Button("Clear All",  id="btn-clear", n_clicks=0,
+            html.Button("Clear All", id="btn-clear", n_clicks=0,
                         style={"padding": "8px 20px", "backgroundColor": "#d93025",
                                "color": "white", "border": "none",
                                "borderRadius": "4px", "cursor": "pointer"}),
@@ -56,6 +86,7 @@ def layout() -> html.Div:
         html.Br(),
         html.Div(id="error-msg",
                  style={"color": "red", "fontWeight": "bold", "minHeight": "24px"}),
+
     ], style={"padding": "20px", "width": "320px", "flexShrink": 0,
               "fontFamily": "sans-serif", "backgroundColor": "#f8f9fa",
               "borderRight": "1px solid #ddd", "overflowY": "auto"})

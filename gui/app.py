@@ -3,8 +3,6 @@ Main entry point. Wires tile server, api client, controls, and map together.
 
 Run:
     python gui/app.py [--server http://localhost:8080] [--tiles map_tiles/israel.mbtiles]
-
-Radar position and max range are fetched from the C++ server at startup.
 """
 
 import argparse
@@ -40,7 +38,7 @@ def main():
 
     # ── Tile server ───────────────────────────────────────────────────────────
     tile_url = ts.start(args.tiles, host=args.host)
-    time.sleep(0.5)  # let Flask thread bind
+    time.sleep(0.5)
 
     with sqlite3.connect(args.tiles) as _con:
         _row = _con.execute("SELECT MAX(zoom_level) FROM tiles").fetchone()
@@ -58,36 +56,56 @@ def main():
             html.H2("⚠ Radar server not reachable", style={"color": "red"}),
             html.P(f"Could not connect to {args.server}"),
             html.P("Start the C++ server first:"),
-            html.Pre("./radar_server",
-                     style={"backgroundColor": "#eee", "padding": "12px"}),
-            html.P("Then set the radar position:"),
-            html.Pre('curl -X POST http://localhost:8080/radar \\\n'
-                     '  -H "Content-Type: application/json" \\\n'
-                     '  -d \'{"lat_deg":32.08,"lon_deg":34.76,"alt_msl_m":10}\'',
+            html.Pre("build\\Release\\radar_server.exe",
                      style={"backgroundColor": "#eee", "padding": "12px"}),
         ], style={"padding": "40px", "fontFamily": "sans-serif"})
         app.run(debug=False)
         return
 
     try:
-        radar = client.radar_info()
+        initial_radar = client.radar_info()
     except RuntimeError:
-        radar = {"lat_deg": 32.08, "lon_deg": 34.76, "alt_m": 0,
-                 "ground_elev_m": 0, "agl_m": 0, "max_range_m": 50000}
-    radar_lat        = radar["lat_deg"]
-    radar_lon        = radar["lon_deg"]
-    radar_alt        = radar["alt_m"]
-    radar_ground     = radar["ground_elev_m"]
-    radar_agl        = radar["agl_m"]
-    max_range_m      = radar["max_range_m"]
+        initial_radar = None  # server running but radar not set yet
 
     app.layout = html.Div([
+        dcc.Store(id="radar-store",   data=initial_radar),
         dcc.Store(id="targets-store", data=[]),
         dcc.Store(id="target-counter", data=0),
         controls.layout(),
-        map_view.layout(radar_lat, radar_lon, radar_alt, radar_ground, radar_agl, max_range_m, tile_url, max_native_zoom),
+        map_view.layout(initial_radar, tile_url, max_native_zoom),
     ], style={"display": "flex", "height": "100vh", "overflow": "hidden"})
 
+    # ── Set radar callback ────────────────────────────────────────────────────
+    @callback(
+        Output("radar-store",      "data"),
+        Output("radar-status-msg", "children"),
+        Output("radar-status-msg", "style"),
+        Input("btn-set-radar",     "n_clicks"),
+        State("input-lat",         "value"),
+        State("input-lon",         "value"),
+        State("input-alt-msl",     "value"),
+        prevent_initial_call=True,
+    )
+    def set_radar(n_clicks, lat, lon, alt):
+        if lat is None or lon is None or alt is None:
+            return no_update, "Please fill in all fields.", {"color": "red", "fontSize": "12px"}
+        try:
+            radar = client.set_radar(lat, lon, alt)
+            msg   = f"Radar set: {lat:.4f}°, {lon:.4f}°, {alt:.1f} m MSL"
+            style = {"color": "green", "fontSize": "12px"}
+            return radar, msg, style
+        except RuntimeError as e:
+            return no_update, str(e), {"color": "red", "fontSize": "12px"}
+
+    # ── Update radar layer when radar-store changes ───────────────────────────
+    @callback(
+        Output("radar-layer", "children"),
+        Input("radar-store",  "data"),
+    )
+    def update_radar_layer(radar):
+        return map_view.build_radar_layer(radar or {})
+
+    # ── Target query callbacks ────────────────────────────────────────────────
     @callback(
         Output("targets-store",  "data"),
         Output("target-counter", "data"),
@@ -107,16 +125,15 @@ def main():
         if ctx.triggered_id == "btn-clear":
             return [], 0, ""
 
-        # btn-add
         try:
             result = client.query(range_m, azimuth, elevation)
         except RuntimeError as e:
             return no_update, no_update, str(e)
 
         counter += 1
-        result["id"]           = counter
-        result["azimuth_deg"]  = azimuth
-        result["elevation_deg"]= elevation
+        result["id"]            = counter
+        result["azimuth_deg"]   = azimuth
+        result["elevation_deg"] = elevation
         targets.append(result)
         return targets, counter, ""
 
@@ -129,7 +146,7 @@ def main():
 
     @callback(
         Output("elevation-bar", "children"),
-        Input("map", "clickData"),
+        Input("map",            "clickData"),
         prevent_initial_call=True,
     )
     def show_elevation(click_data):
