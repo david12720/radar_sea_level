@@ -75,7 +75,7 @@ cd /mnt/c/Users/<you>/radar_sea_level
 g++ -std=c++17 -O2 -Iinclude -Iapp -o radar_server \
     main_server.cpp app/query_handler.cpp app/radar_server.cpp \
     src/dted_tile.cpp src/dem_database.cpp \
-    src/elevation_lut.cpp src/radar_compute.cpp -lpthread
+    src/elevation_lut.cpp src/radar_compute.cpp src/relative_angle.cpp -lpthread
 ```
 
 **Step 2 — Download DEM tiles** (terrain elevation data)
@@ -213,7 +213,13 @@ g++ -std=c++17 -O2 -Iinclude -o radar_sea_level \
 g++ -std=c++17 -O2 -Iinclude -Iapp -o radar_server \
     main_server.cpp app/query_handler.cpp app/radar_server.cpp \
     src/dted_tile.cpp src/dem_database.cpp \
-    src/elevation_lut.cpp src/radar_compute.cpp -lpthread
+    src/elevation_lut.cpp src/radar_compute.cpp src/relative_angle.cpp -lpthread
+
+# LUT TCP export server
+g++ -std=c++17 -O2 -Iinclude -Iapp -o lut_server \
+    main_lut_server.cpp app/lut_exporter.cpp app/lut_tcp_server.cpp \
+    src/dted_tile.cpp src/dem_database.cpp \
+    src/elevation_lut.cpp src/radar_compute.cpp src/relative_angle.cpp -lpthread
 ```
 
 ## Usage — HTTP Server + GUI
@@ -259,6 +265,59 @@ Open `http://localhost:8050` in a browser. Set range, azimuth, and elevation, cl
 | 🟢 Green | > 1000 m |
 
 The map runs fully offline using locally cached tiles.
+
+## Usage — LUT TCP Export Server
+
+Exports a full ground-elevation LUT for an arbitrary radar position as a raw binary `int32[az][range]` array over TCP.
+
+### Start the server
+
+```bash
+./lut_server [--tiles ./tiles/] [--port 9000]
+```
+
+### Wire protocol (binary, little-endian)
+
+**Client → server** (fixed 33-byte header):
+
+| Field | Type | Size |
+|-------|------|------|
+| `lat_deg` | double | 8 |
+| `lon_deg` | double | 8 |
+| `alt_m` | double | 8 |
+| `max_range_m` | double | 8 |
+| `mode` | uint8 | 1 |
+
+If `mode == 1` (save to file on server), append:
+
+| Field | Type | Size |
+|-------|------|------|
+| `filename_len` | uint16 | 2 |
+| `filename` | char[] | filename_len |
+
+**Server → client**:
+
+- `mode 0` (return data): `uint32 az_count`, `uint32 range_count`, then `int32[az_count * range_count]`
+- `mode 1` (save to file): `uint8 status` (0 = ok, 1 = error)
+
+### Array layout
+
+```
+int32[az_count][range_count]   stored row-major, azimuth outer
+```
+
+- `az_count` = 3600 (0.1° steps, index 0 = 0°, index 12 = 1.2°)
+- `range_count` = `ceil(max_range_m / 15) + 1` (15 m steps, index 100 = 1500 m)
+- Value: ground elevation MSL in meters, rounded to nearest integer
+
+To read element at azimuth 1.2° (index 12), range 1500 m (index 100):
+```c
+int32_t elev = cells[12 * range_count + 100];
+```
+
+File saved with `mode 1` is the same raw block with no header.
+
+---
 
 ## Usage — Library / Direct Query
 

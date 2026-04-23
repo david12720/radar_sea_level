@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "radar_server", "radar_server.vcxproj", "{2A3B4C5D-6E7F-8A9B-0C1D-2E3F4A5B6C7D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lut_server", "lut_server.vcxproj", "{3B4C5D6E-7F8A-9B0C-1D2E-3F4A5B6C7D8E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -15,5 +17,9 @@ Global
 		{2A3B4C5D-6E7F-8A9B-0C1D-2E3F4A5B6C7D}.Debug|x64.Build.0 = Debug|x64
 		{2A3B4C5D-6E7F-8A9B-0C1D-2E3F4A5B6C7D}.Release|x64.ActiveCfg = Release|x64
 		{2A3B4C5D-6E7F-8A9B-0C1D-2E3F4A5B6C7D}.Release|x64.Build.0 = Release|x64
+		{3B4C5D6E-7F8A-9B0C-1D2E-3F4A5B6C7D8E}.Debug|x64.ActiveCfg = Debug|x64
+		{3B4C5D6E-7F8A-9B0C-1D2E-3F4A5B6C7D8E}.Debug|x64.Build.0 = Debug|x64
+		{3B4C5D6E-7F8A-9B0C-1D2E-3F4A5B6C7D8E}.Release|x64.ActiveCfg = Release|x64
+		{3B4C5D6E-7F8A-9B0C-1D2E-3F4A5B6C7D8E}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 EndGlobal
