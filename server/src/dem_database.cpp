@@ -41,9 +41,28 @@ static double bicubicInterpolate(const DtedTile& tile, double frac_col, double f
 
 // ── DemDatabase ───────────────────────────────────────────────────────────────
 
+DtedTile DemDatabase::tile_pool_[MAX_DEM_TILES];
+
+int DemDatabase::findTileIndex(int lat, int lon) const
+{
+    for (int i = 0; i < num_tiles_; ++i) {
+        if (tile_pool_[i].origin_lat == lat && tile_pool_[i].origin_lon == lon)
+            return i;
+    }
+    return -1;
+}
+
 void DemDatabase::loadTile(const std::string& filepath, int origin_lat, int origin_lon, Format fmt)
 {
-    DtedTile tile;
+    // Check if already loaded
+    if (findTileIndex(origin_lat, origin_lon) != -1) return;
+
+    if (num_tiles_ >= MAX_DEM_TILES) {
+        std::cerr << "[DEM] Pool full, cannot load: " << filepath << "\n";
+        return;
+    }
+
+    DtedTile& tile = tile_pool_[num_tiles_];
     tile.origin_lat = origin_lat;
     tile.origin_lon = origin_lon;
 
@@ -52,9 +71,9 @@ void DemDatabase::loadTile(const std::string& filepath, int origin_lat, int orig
     else
         tile.loadSRTM(filepath);
 
-    tiles_[tileKey(origin_lat, origin_lon)] = std::move(tile);
+    num_tiles_++;
     std::cout << "[DEM] Loaded tile (" << origin_lat << ", " << origin_lon
-              << ") from: " << filepath << "\n";
+              << ") into pool index " << (num_tiles_ - 1) << " from: " << filepath << "\n";
 }
 
 double DemDatabase::getElevation(double lat_deg, double lon_deg) const
@@ -62,12 +81,12 @@ double DemDatabase::getElevation(double lat_deg, double lon_deg) const
     int tile_lat = static_cast<int>(std::floor(lat_deg));
     int tile_lon = static_cast<int>(std::floor(lon_deg));
 
-    auto it = tiles_.find(tileKey(tile_lat, tile_lon));
-    if (it == tiles_.end())
+    int idx = findTileIndex(tile_lat, tile_lon);
+    if (idx == -1)
         throw std::runtime_error("No DEM tile loaded for lat=" +
             std::to_string(tile_lat) + " lon=" + std::to_string(tile_lon));
 
-    const DtedTile& tile = it->second;
+    const DtedTile& tile = tile_pool_[idx];
     // Convert geographic coords to fractional post indices within this tile.
     double frac_col = (lon_deg - tile.origin_lon) / tile.post_spacing;
     double frac_row = (lat_deg - tile.origin_lat) / tile.post_spacing;
@@ -76,9 +95,9 @@ double DemDatabase::getElevation(double lat_deg, double lon_deg) const
 
 bool DemDatabase::hasTile(double lat_deg, double lon_deg) const
 {
-    return tiles_.count(tileKey(
+    return findTileIndex(
         static_cast<int>(std::floor(lat_deg)),
-        static_cast<int>(std::floor(lon_deg)))) > 0;
+        static_cast<int>(std::floor(lon_deg))) != -1;
 }
 
 std::string DemDatabase::dted2Filename(int origin_lat, int origin_lon)
@@ -103,14 +122,12 @@ std::string DemDatabase::srtmFilename(int origin_lat, int origin_lon)
     return oss.str();
 }
 
-std::string DemDatabase::tileKey(int lat, int lon)
-{
-    return std::to_string(lat) + "_" + std::to_string(lon);
-}
-
 int DemDatabase::loadTilesAround(const LLA& radar, double max_range_m,
                                   const std::string& tiles_dir, Format fmt)
 {
+    // Clear previous tiles count (reuse pool)
+    num_tiles_ = 0;
+
     // Degrees of latitude spanned by max_range (constant — 1° lat ~ 111 km).
     const double lat_span = (max_range_m / EARTH_RADIUS) * RAD2DEG;
     // Longitude span shrinks toward the poles: 1° lon = 111 km * cos(lat).

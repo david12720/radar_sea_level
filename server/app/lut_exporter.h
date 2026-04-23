@@ -6,9 +6,10 @@
 #include <vector>
 
 struct LutExportData {
-    std::vector<int32_t> cells;  // row-major: [az_idx * range_count + range_idx]
+    int32_t*             cells;  // points to a static buffer: [az_idx * range_count + range_idx]
     uint32_t             az_count;
     uint32_t             range_count;
+    size_t               total_cells;
 };
 
 // Loads DEM tiles relevant to the given radar position and exports ground elevation
@@ -27,4 +28,6 @@ private:
     double      range_step_m_ = 15.0;
     double      az_step_deg_  = 0.1;
     DemDatabase dem_;
+
+    static int32_t results_buffer_[MAX_LUT_RANGES * MAX_LUT_AZIMUTHS];
 };

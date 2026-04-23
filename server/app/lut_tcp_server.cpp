@@ -105,8 +105,8 @@ void LutTcpServer::handleClient(int sock) const
             uint32_t range = data.range_count;
             if (!sendAll(sock, &az,    sizeof(az)))    return;
             if (!sendAll(sock, &range, sizeof(range))) return;
-            sendAll(sock, data.cells.data(),
-                    data.cells.size() * sizeof(int32_t));
+            sendAll(sock, data.cells,
+                    data.total_cells * sizeof(int32_t));
         } else {
             exporter.saveToFile(data, filename);
             uint8_t status = 0;

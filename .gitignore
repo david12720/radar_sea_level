@@ -1,10 +1,34 @@
+# DEM tiles and data
 tiles/
 build/
 H36_preview/
 I36_preview/
-map_tiles/*
-!map_tiles/download_tiles.py
-*.zip
+
+# Map tiles (Ignore data files, keep source)
+gui/map_tiles/*.mbtiles
+gui/map_tiles/*.mbtiles-shm
+gui/map_tiles/*.mbtiles-wal
+gui/map_tiles/map_tiles/
+!gui/map_tiles/download_tiles.py
+
+# Binaries and build artifacts
 *.exe
-radar_sea_level
+*.zip
 radar_server
+radar_sea_level
+server/lut_server
+server/tests/test_query_handler
+lut_output*.bin
+
+# Visual Studio local files
+.vs/
+*.vcxproj.user
+UpgradeLog.htm
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# IDE/Tool specific
+.claude/

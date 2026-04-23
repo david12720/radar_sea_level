@@ -1,6 +1,6 @@
 #pragma once
+#include "constants.h"
 #include <string>
-#include <vector>
 #include <cstdint>
 
 // One 1°×1° DTED2 or SRTM tile stored column-major [lon_col][lat_row].
@@ -13,7 +13,7 @@ public:
     int    rows;          // latitude posts:  3601 (SRTM1) or 1201 (SRTM3)
     double post_spacing;  // degrees between adjacent posts
 
-    std::vector<std::vector<int16_t>> elevation; // [col][row]
+    int16_t elevation[SRTM1_COLS * SRTM1_ROWS]; 
 
     DtedTile();
 
