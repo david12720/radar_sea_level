@@ -147,11 +147,13 @@ def main():
             lat_t, lon_t = result["lat_deg"], result["lon_deg"]
             try:
                 result["open_elevation_m"] = ac.get_open_elevation(lat_t, lon_t)
-            except RuntimeError:
+            except Exception as e:
+                print(f"[gui] Open-Elevation failed: {e}")
                 result["open_elevation_m"] = None
             try:
                 result["open_meteo_elevation_m"] = ac.get_open_meteo_elevation(lat_t, lon_t)
-            except RuntimeError:
+            except Exception as e:
+                print(f"[gui] Open-Meteo failed: {e}")
                 result["open_meteo_elevation_m"] = None
 
         counter += 1
