@@ -1,8 +1,9 @@
 #pragma once
 #include "dted_tile.h"
 #include "types.h"
+#include "constants.h"
+#include <cstdint>
 #include <string>
-#include <unordered_map>
 
 // Manages a collection of DEM tiles; routes lat/lon queries to the correct tile.
 class DemDatabase {
@@ -30,7 +31,11 @@ public:
     static std::string srtmFilename(int origin_lat, int origin_lon);
 
 private:
-    std::unordered_map<std::string, DtedTile> tiles_;
+    // Tiles are stored in a pre-allocated pool to avoid heap allocations.
+    // Since objects are large (~26MB each), we use a static pointer to a pool 
+    // or manage them carefully.
+    static DtedTile tile_pool_[MAX_DEM_TILES];
+    int num_tiles_ = 0;
 
-    static std::string tileKey(int lat, int lon);
+    int findTileIndex(int lat, int lon) const;
 };

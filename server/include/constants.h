@@ -16,3 +16,8 @@ inline constexpr double SRTM1_POST_SPACING = 1.0 / 3600.0;
 inline constexpr int    SRTM3_COLS         = 1201;
 inline constexpr int    SRTM3_ROWS         = 1201;
 inline constexpr double SRTM3_POST_SPACING = 1.0 / 1200.0;
+
+// Maximum bounds for static allocations
+inline constexpr int MAX_LUT_RANGES   = 4000; // e.g. 60km @ 15m step
+inline constexpr int MAX_LUT_AZIMUTHS = 3600; // e.g. 360 deg @ 0.1 deg step
+inline constexpr int MAX_DEM_TILES    = 9;    // 3x3 grid around radar

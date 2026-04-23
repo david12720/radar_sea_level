@@ -1,7 +1,7 @@
 #pragma once
+#include "constants.h"
 #include "types.h"
 #include "dem_database.h"
-#include <vector>
 
 struct LutConfig {
     double max_range_m  = 50000.0; // meters
@@ -29,5 +29,5 @@ private:
     LLA                             radar_;
     int                             num_ranges_   = 0;
     int                             num_azimuths_ = 0;
-    std::vector<std::vector<float>> table_;
+    static float                    table_[MAX_LUT_RANGES][MAX_LUT_AZIMUTHS];
 };

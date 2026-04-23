@@ -4,6 +4,8 @@
 #include <cmath>
 #include <algorithm>
 
+float ElevationLUT::table_[MAX_LUT_RANGES][MAX_LUT_AZIMUTHS];
+
 void ElevationLUT::build(const LLA& radar, const DemDatabase& dem, const LutConfig& cfg)
 {
     cfg_          = cfg;
@@ -11,7 +13,9 @@ void ElevationLUT::build(const LLA& radar, const DemDatabase& dem, const LutConf
     num_ranges_   = static_cast<int>(std::ceil(cfg.max_range_m / cfg.range_step_m)) + 1;
     num_azimuths_ = static_cast<int>(std::round(360.0 / cfg.az_step_deg));
 
-    table_.assign(num_ranges_, std::vector<float>(num_azimuths_, 0.0f));
+    if (num_ranges_ > MAX_LUT_RANGES || num_azimuths_ > MAX_LUT_AZIMUTHS) {
+        throw std::runtime_error("LUT dimensions exceed static limits");
+    }
 
     // Walk every (range, azimuth) bin and record ground elevation MSL.
     // Cells outside loaded tiles default to 0.0 (sea level).
