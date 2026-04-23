@@ -5,6 +5,10 @@
 
 struct LutConfig {
     double max_range_m  = 50000.0; // meters
+    // NOTE: SRTM-3 post spacing is ~90 m. A range_step_m finer than that
+    // adds LUT bins without adding real terrain detail — consider ~90 m
+    // if memory or build time is a concern (6× reduction).
+    // az_step_deg = 0.1° ≈ 105 m arc at 60 km — well matched to SRTM-3.
     double range_step_m = 15.0;    // meters per range bin
     double az_step_deg  = 0.1;     // degrees per azimuth bin
 };
