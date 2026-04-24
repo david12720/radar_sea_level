@@ -21,6 +21,7 @@ endif()
 
 # ── Shared source files ───────────────────────────────────────────────────────
 set(CORE_SOURCES
+    src/coord_convert.cpp
     src/dted_tile.cpp
     src/dem_database.cpp
     src/elevation_lut.cpp

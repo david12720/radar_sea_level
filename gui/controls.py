@@ -104,6 +104,75 @@ def layout(online_mode: bool = False) -> html.Div:
         html.Div(id="error-msg",
                  style={"color": "red", "fontWeight": "bold", "minHeight": "24px"}),
 
+        html.Hr(style={"margin": "16px 0"}),
+
+        # ── Coordinate converter ──────────────────────────────────────────────
+        html.H3("Coordinate Converter", style={"marginBottom": "12px"}),
+
+        # ── LL → UTM ──────────────────────────────────────────────────────────
+        html.Div("Lat/Lon → UTM (WGS84)", style={"fontWeight": "bold",
+                                                   "fontSize": "13px",
+                                                   "marginBottom": "6px"}),
+        html.Label("Latitude (°)"),
+        dcc.Input(id="conv-lat", type="text", placeholder="e.g. 32.0",
+                  debounce=True,
+                  style={"width": "100%", "marginBottom": "6px", "padding": "4px"}),
+        html.Label("Longitude (°)"),
+        dcc.Input(id="conv-lon", type="text", placeholder="e.g. 35.0",
+                  debounce=True,
+                  style={"width": "100%", "marginBottom": "8px", "padding": "4px"}),
+        html.Button("Convert →", id="btn-ll-to-utm", n_clicks=0,
+                    style={"width": "100%", "padding": "6px",
+                           "backgroundColor": "#5f6368", "color": "white",
+                           "border": "none", "borderRadius": "4px", "cursor": "pointer",
+                           "marginBottom": "6px"}),
+        html.Div(id="conv-ll-to-utm-result",
+                 style={"fontSize": "12px", "minHeight": "18px", "marginBottom": "12px",
+                        "fontFamily": "monospace", "wordBreak": "break-all"}),
+
+        # ── UTM → LL ──────────────────────────────────────────────────────────
+        html.Div("UTM → Lat/Lon (WGS84)", style={"fontWeight": "bold",
+                                                   "fontSize": "13px",
+                                                   "marginBottom": "6px"}),
+        html.Div([
+            html.Div([
+                html.Label("Easting (m)"),
+                dcc.Input(id="conv-easting", type="number", placeholder="e.g. 717000",
+                          debounce=True,
+                          style={"width": "100%", "padding": "4px"}),
+            ], style={"flex": "1", "marginRight": "6px"}),
+            html.Div([
+                html.Label("Northing (m)"),
+                dcc.Input(id="conv-northing", type="number", placeholder="e.g. 3545000",
+                          debounce=True,
+                          style={"width": "100%", "padding": "4px"}),
+            ], style={"flex": "1"}),
+        ], style={"display": "flex", "marginBottom": "6px"}),
+        html.Div([
+            html.Div([
+                html.Label("Zone"),
+                dcc.Input(id="conv-zone", type="number", placeholder="36",
+                          debounce=True, min=1, max=60, step=1,
+                          style={"width": "100%", "padding": "4px"}),
+            ], style={"flex": "1", "marginRight": "6px"}),
+            html.Div([
+                html.Label("Hemisphere"),
+                dcc.Dropdown(id="conv-hemisphere",
+                             options=[{"label": "N", "value": "N"},
+                                      {"label": "S", "value": "S"}],
+                             value="N", clearable=False,
+                             style={"fontSize": "13px"}),
+            ], style={"flex": "1"}),
+        ], style={"display": "flex", "marginBottom": "8px"}),
+        html.Button("Convert →", id="btn-utm-to-ll", n_clicks=0,
+                    style={"width": "100%", "padding": "6px",
+                           "backgroundColor": "#5f6368", "color": "white",
+                           "border": "none", "borderRadius": "4px", "cursor": "pointer",
+                           "marginBottom": "6px"}),
+        html.Div(id="conv-utm-to-ll-result",
+                 style={"fontSize": "12px", "minHeight": "18px",
+                        "fontFamily": "monospace", "wordBreak": "break-all"}),
+
     ], style={"padding": "20px", "width": "320px", "flexShrink": 0,
               "fontFamily": "sans-serif", "backgroundColor": "#f8f9fa",
               "borderRight": "1px solid #ddd", "overflowY": "auto"})

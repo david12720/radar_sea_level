@@ -108,6 +108,45 @@ class RadarApiClient:
             msg = r.text
         raise RuntimeError(f"Server error {r.status_code}: {msg}")
 
+    def convert_ll_to_utm(self, lat_deg: float, lon_deg: float) -> dict:
+        """
+        Returns dict with keys: easting, northing, zone, hemisphere ('N'/'S').
+        Raises RuntimeError on failure.
+        """
+        payload = {"direction": "ll_to_utm", "lat_deg": lat_deg, "lon_deg": lon_deg}
+        try:
+            r = requests.post(f"{self._base}/convert", json=payload, timeout=5)
+        except requests.RequestException as e:
+            raise RuntimeError(f"Cannot reach radar server: {e}") from e
+        if r.status_code == 200:
+            return r.json()
+        try:
+            msg = r.json().get("error", r.text)
+        except Exception:
+            msg = r.text
+        raise RuntimeError(f"Server error {r.status_code}: {msg}")
+
+    def convert_utm_to_ll(self, easting: float, northing: float,
+                          zone: int, hemisphere: str) -> dict:
+        """
+        Returns dict with keys: lat_deg, lon_deg.
+        hemisphere: 'N' or 'S'
+        Raises RuntimeError on failure.
+        """
+        payload = {"direction": "utm_to_ll", "easting": easting, "northing": northing,
+                   "zone": zone, "hemisphere": hemisphere.upper()}
+        try:
+            r = requests.post(f"{self._base}/convert", json=payload, timeout=5)
+        except requests.RequestException as e:
+            raise RuntimeError(f"Cannot reach radar server: {e}") from e
+        if r.status_code == 200:
+            return r.json()
+        try:
+            msg = r.json().get("error", r.text)
+        except Exception:
+            msg = r.text
+        raise RuntimeError(f"Server error {r.status_code}: {msg}")
+
     def query(self, range_m: float, azimuth_deg: float, elevation_deg: float,
               ground_elevation_m: float = None) -> dict:
         """

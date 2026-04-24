@@ -1,4 +1,5 @@
 #include "radar_server.h"
+#include "coord_convert.h"
 #include "vendor/httplib.h"
 #include "vendor/json.hpp"
 #include <iostream>
@@ -161,6 +162,73 @@ void RadarServer::start()
             res.status = 500;
             res.set_content(json{{"error", "internal server error"}}.dump(), "application/json");
             std::cerr << "[server] internal error: " << e.what() << "\n";
+        }
+    });
+
+    svr.Post("/convert", [](const httplib::Request& req, httplib::Response& res) {
+        json body;
+        try { body = json::parse(req.body); }
+        catch (...) {
+            res.status = 400;
+            res.set_content(R"({"error":"bad request: invalid JSON"})", "application/json");
+            return;
+        }
+        if (!body.contains("direction")) {
+            res.status = 400;
+            res.set_content(R"({"error":"missing field: direction"})", "application/json");
+            return;
+        }
+        std::string dir = body.at("direction").get<std::string>();
+        try {
+            if (dir == "ll_to_utm") {
+                if (!body.contains("lat_deg") || !body.contains("lon_deg")) {
+                    res.status = 400;
+                    res.set_content(R"({"error":"ll_to_utm requires lat_deg and lon_deg"})", "application/json");
+                    return;
+                }
+                double lat = body.at("lat_deg").get<double>();
+                double lon = body.at("lon_deg").get<double>();
+                UtmPoint u = ll_to_utm(lat, lon);
+                json out;
+                out["easting"]    = u.easting;
+                out["northing"]   = u.northing;
+                out["zone"]       = u.zone;
+                out["hemisphere"] = std::string(1, u.hemisphere);
+                res.set_content(out.dump(), "application/json");
+            } else if (dir == "utm_to_ll") {
+                if (!body.contains("easting") || !body.contains("northing") ||
+                    !body.contains("zone")     || !body.contains("hemisphere")) {
+                    res.status = 400;
+                    res.set_content(R"({"error":"utm_to_ll requires easting, northing, zone, hemisphere"})",
+                                    "application/json");
+                    return;
+                }
+                UtmPoint u;
+                u.easting    = body.at("easting").get<double>();
+                u.northing   = body.at("northing").get<double>();
+                u.zone       = body.at("zone").get<int>();
+                std::string hem = body.at("hemisphere").get<std::string>();
+                if (hem.empty()) {
+                    res.status = 400;
+                    res.set_content(R"({"error":"hemisphere must be 'N' or 'S'"})", "application/json");
+                    return;
+                }
+                u.hemisphere = static_cast<char>(hem[0]);
+                double lat, lon;
+                utm_to_ll(u, lat, lon);
+                json out;
+                out["lat_deg"] = lat;
+                out["lon_deg"] = lon;
+                res.set_content(out.dump(), "application/json");
+            } else {
+                res.status = 400;
+                res.set_content(R"({"error":"direction must be 'll_to_utm' or 'utm_to_ll'"})",
+                                "application/json");
+            }
+        } catch (const std::exception& e) {
+            res.status = 400;
+            res.set_content(json{{"error", std::string("bad request: ") + e.what()}}.dump(),
+                            "application/json");
         }
     });
 
