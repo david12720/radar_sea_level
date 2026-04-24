@@ -3,8 +3,6 @@ Main entry point. Wires tile server, api client, controls, and map together.
 
 Run:
     python gui/app.py [--server http://localhost:8080] [--tiles map_tiles/israel.mbtiles]
-
-Radar position and max range are fetched from the C++ server at startup.
 """
 
 import argparse
@@ -40,7 +38,7 @@ def main():
 
     # ── Tile server ───────────────────────────────────────────────────────────
     tile_url = ts.start(args.tiles, host=args.host)
-    time.sleep(0.5)  # let Flask thread bind
+    time.sleep(0.5)
 
     with sqlite3.connect(args.tiles) as _con:
         _row = _con.execute("SELECT MAX(zoom_level) FROM tiles").fetchone()
@@ -49,6 +47,11 @@ def main():
     # ── API client + startup health check ────────────────────────────────────
     client = ac.RadarApiClient(args.server)
     server_ok = client.health()
+    print(f"[gui] Radar server ({args.server}): {'OK' if server_ok else 'UNREACHABLE'}")
+
+    print("[gui] Checking Open Elevation API connectivity...")
+    online_mode = ac.ping_open_elevation()
+    print(f"[gui] Open Elevation API: {'ONLINE' if online_mode else 'OFFLINE (checkbox disabled)'}")
 
     # ── Dash app ──────────────────────────────────────────────────────────────
     app = Dash(__name__, suppress_callback_exceptions=True)
@@ -58,27 +61,63 @@ def main():
             html.H2("⚠ Radar server not reachable", style={"color": "red"}),
             html.P(f"Could not connect to {args.server}"),
             html.P("Start the C++ server first:"),
-            html.Pre("./radar_server --lat <lat> --lon <lon>",
+            html.Pre("build\\Release\\radar_server.exe",
                      style={"backgroundColor": "#eee", "padding": "12px"}),
         ], style={"padding": "40px", "fontFamily": "sans-serif"})
         app.run(debug=False)
         return
 
-    radar = client.radar_info()
-    radar_lat        = radar["lat_deg"]
-    radar_lon        = radar["lon_deg"]
-    radar_alt        = radar["alt_m"]
-    radar_ground     = radar["ground_elev_m"]
-    radar_agl        = radar["agl_m"]
-    max_range_m      = radar["max_range_m"]
+    try:
+        initial_radar = client.radar_info()
+    except RuntimeError:
+        initial_radar = None  # server running but radar not set yet
 
     app.layout = html.Div([
+        dcc.Store(id="radar-store",   data=initial_radar),
         dcc.Store(id="targets-store", data=[]),
         dcc.Store(id="target-counter", data=0),
-        controls.layout(),
-        map_view.layout(radar_lat, radar_lon, radar_alt, radar_ground, radar_agl, max_range_m, tile_url, max_native_zoom),
+        controls.layout(online_mode),
+        map_view.layout(initial_radar, tile_url, max_native_zoom),
     ], style={"display": "flex", "height": "100vh", "overflow": "hidden"})
 
+    # ── Set radar callback ────────────────────────────────────────────────────
+    @callback(
+        Output("radar-store",      "data"),
+        Output("radar-status-msg", "children"),
+        Output("radar-status-msg", "style"),
+        Output("targets-store",    "data",  allow_duplicate=True),
+        Output("target-counter",   "data",  allow_duplicate=True),
+        Input("btn-set-radar",     "n_clicks"),
+        State("input-lat",         "value"),
+        State("input-lon",         "value"),
+        State("input-alt-msl",     "value"),
+        prevent_initial_call=True,
+    )
+    def set_radar(n_clicks, lat, lon, alt):
+        if not lat or not lon or alt is None:
+            return no_update, "Please fill in all fields.", {"color": "red", "fontSize": "12px"}, no_update, no_update
+        try:
+            lat_f = float(lat)
+            lon_f = float(lon)
+        except (ValueError, TypeError):
+            return no_update, "Latitude and longitude must be valid numbers.", {"color": "red", "fontSize": "12px"}, no_update, no_update
+        try:
+            radar = client.set_radar(lat_f, lon_f, float(alt))
+            msg   = f"Radar set: {lat_f:.6f}°, {lon_f:.6f}°, {float(alt):.1f} m MSL"
+            style = {"color": "green", "fontSize": "12px"}
+            return radar, msg, style, [], 0
+        except RuntimeError as e:
+            return no_update, str(e), {"color": "red", "fontSize": "12px"}, no_update, no_update
+
+    # ── Update radar layer when radar-store changes ───────────────────────────
+    @callback(
+        Output("radar-layer", "children"),
+        Input("radar-store",  "data"),
+    )
+    def update_radar_layer(radar):
+        return map_view.build_radar_layer(radar or {})
+
+    # ── Target query callbacks ────────────────────────────────────────────────
     @callback(
         Output("targets-store",  "data"),
         Output("target-counter", "data"),
@@ -88,26 +127,39 @@ def main():
         State("input-range",     "value"),
         State("input-azimuth",   "value"),
         State("input-elevation", "value"),
+        State("chk-open-elevation", "value"),
         State("targets-store",   "data"),
         State("target-counter",  "data"),
         prevent_initial_call=True,
     )
     def handle_buttons(add_clicks, clear_clicks, range_m, azimuth, elevation,
-                       targets, counter):
+                       use_open_elev, targets, counter):
         from dash import ctx
         if ctx.triggered_id == "btn-clear":
             return [], 0, ""
 
-        # btn-add
         try:
             result = client.query(range_m, azimuth, elevation)
         except RuntimeError as e:
             return no_update, no_update, str(e)
 
+        if online_mode and use_open_elev:
+            lat_t, lon_t = result["lat_deg"], result["lon_deg"]
+            try:
+                result["open_elevation_m"] = ac.get_open_elevation(lat_t, lon_t)
+            except Exception as e:
+                print(f"[gui] Open-Elevation failed: {e}")
+                result["open_elevation_m"] = None
+            try:
+                result["open_meteo_elevation_m"] = ac.get_open_meteo_elevation(lat_t, lon_t)
+            except Exception as e:
+                print(f"[gui] Open-Meteo failed: {e}")
+                result["open_meteo_elevation_m"] = None
+
         counter += 1
-        result["id"]           = counter
-        result["azimuth_deg"]  = azimuth
-        result["elevation_deg"]= elevation
+        result["id"]            = counter
+        result["azimuth_deg"]   = azimuth
+        result["elevation_deg"] = elevation
         targets.append(result)
         return targets, counter, ""
 
@@ -120,7 +172,7 @@ def main():
 
     @callback(
         Output("elevation-bar", "children"),
-        Input("map", "clickData"),
+        Input("map",            "clickData"),
         prevent_initial_call=True,
     )
     def show_elevation(click_data):

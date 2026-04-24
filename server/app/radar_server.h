@@ -1,5 +1,7 @@
 #pragma once
 #include "query_handler.h"
+#include "radar_compute.h"
+#include "relative_angle.h"
 
 // HTTP transport layer — no domain logic here.
 // Deserializes JSON requests, delegates to QueryHandler, serializes JSON responses.

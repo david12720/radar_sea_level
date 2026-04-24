@@ -45,12 +45,12 @@
 
   <!-- Debug settings: Ctrl+F5 / F5 from VS will run with these args -->
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>--lat 32.08 --lon 34.76 --alt 0 --tiles ./tiles/</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--tiles ./tiles/ --port 8080</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>--lat 32.08 --lon 34.76 --alt 0 --tiles ./tiles/</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--tiles ./tiles/ --port 8080</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>

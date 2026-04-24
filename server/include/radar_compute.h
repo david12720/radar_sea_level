@@ -15,3 +15,9 @@ TargetResult computeTargetSeaLevel(const LLA& radar,
 TargetResult computeTargetSeaLevel(const LLA& radar,
                                    const RadarMeasurement& meas,
                                    const ElevationLUT& lut);
+
+// Compute target position and AGL height — ground elevation provided by caller.
+// Used when the client already holds a height map (no DEM or LUT access needed).
+TargetResult computeTargetSeaLevel(const LLA& radar,
+                                   const RadarMeasurement& meas,
+                                   double ground_elevation_m);

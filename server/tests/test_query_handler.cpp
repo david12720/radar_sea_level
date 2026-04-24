@@ -31,14 +31,19 @@ static int failures = 0;
 
 int main()
 {
-    // Radar at Tel Aviv coast, 10 m altitude
-    LLA radar { 32.08, 34.76, 10.0 };
-    LutConfig cfg;
-    cfg.max_range_m  = 50000.0;
-    cfg.range_step_m = 15.0;
-    cfg.az_step_deg  = 0.1;
+    // ── Test 0: query before setRadar() must throw ────────────────────────────
+    {
+        QueryHandler h(50000.0, "./tiles/");
+        ASSERT_THROWS(h.handle({ 1000.0, 270.0, 0.0 }), RadarNotSetError, "query before setRadar throws");
+    }
 
-    QueryHandler handler(radar, cfg, "./tiles/");
+    QueryHandler handler(50000.0, "./tiles/");
+    bool ok = handler.setRadar(32.08, 34.76, 10.0); // Tel Aviv coast, 10 m MSL
+    if (!ok) {
+        std::cerr << "FAIL: setRadar() returned false — no tiles loaded. "
+                     "Run tests from server/ so ./tiles/ resolves.\n";
+        return 1;
+    }
 
     // ── Test 1: sea target, expect ground elevation = 0 m ────────────────────
     {
@@ -54,7 +59,6 @@ int main()
         TargetResult r = handler.handle({ 1000.0, 270.0, 2.0 });
         double expected_alt = 10.0 + 1000.0 * std::sin(2.0 * M_PI / 180.0);
         ASSERT_NEAR(r.position.alt_m, expected_alt, 0.5, "elevated target alt MSL");
-        // AGL should be positive (target above sea = 0 ground)
         ASSERT_NEAR(r.target_height_agl_m, r.position.alt_m - r.ground_elevation_m, 0.01,
                     "AGL = alt_msl - ground_elev");
     }
