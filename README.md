@@ -71,11 +71,11 @@ Open `radar_sea_level.sln`, select **Release x64**, press **Build**. Binary appe
 
 *Option B — WSL g++:*
 ```bash
-cd /mnt/c/Users/<you>/radar_sea_level
+cd /mnt/c/Users/<you>/radar_sea_level/server
 g++ -std=c++17 -O2 -Iinclude -Iapp -o radar_server \
-    main_server.cpp app/query_handler.cpp app/radar_server.cpp \
-    src/dted_tile.cpp src/dem_database.cpp \
-    src/elevation_lut.cpp src/radar_compute.cpp src/relative_angle.cpp -lpthread
+    main_server.cpp app/query_handler.cpp app/radar_server.cpp app/lut_exporter.cpp \
+    src/coord_convert.cpp src/dted_tile.cpp src/dem_database.cpp \
+    src/elevation_lut.cpp src/radar_compute.cpp src/relative_angle.cpp src/earth_model.cpp -lpthread
 ```
 
 **Step 2 — Download DEM tiles** (terrain elevation data)
@@ -122,32 +122,37 @@ Open **http://localhost:8050** in your browser.
 
 ### Using the GUI
 
-1. **Set your measurement** using the three sliders on the left panel:
+1. **Set the radar position** using the form at the top of the left panel:
+   - **Latitude / Longitude** — radar geographic position in decimal degrees
+   - **Height above ground (m)** — radar antenna height above local terrain (AGL); the server resolves altitude MSL from the DEM automatically
+   - Click **Set Radar** — the radar marker and range circle appear on the map
+
+2. **Set your measurement** using the three sliders:
    - **Range** — slant range to the target in meters
    - **Azimuth** — direction from North (0° = North, 90° = East, 180° = South, 270° = West)
    - **Elevation** — beam elevation angle (0° = horizontal, positive = upward)
 
-2. **Click "Add Target"** — the target appears as a colored pin on the map
+3. **Click "Add Target"** — the target appears as a colored pin on the map
 
-3. **Click a pin** to see the popup with full details:
+4. **Click a pin** to see the popup with full details:
    - Lat / Lon — geographic position
    - Alt MSL — target altitude above mean sea level
    - Ground — terrain height at that location (from DEM)
    - AGL — target height above the ground
    - Range / Az / El — the original measurement
 
-4. **Pin colors** indicate how high the target is above ground:
+5. **Pin colors** indicate whether the target is airborne or at ground level:
 
-   | Color | AGL | Meaning |
-   |-------|-----|---------|
-   | 🔴 Red | < 50 m | Near ground / sea-skimmer |
-   | 🟠 Orange | 50–300 m | Low altitude |
-   | 🟡 Yellow | 300–1000 m | Medium altitude |
-   | 🟢 Green | > 1000 m | High altitude |
+   | Color | Relative elevation | Meaning |
+   |-------|--------------------|---------|
+   | 🔵 Blue | > 1.0° above terrain | Air target |
+   | 🔴 Red | ≤ 1.0° (at or near terrain) | Ground / masked |
 
-5. **Click anywhere on the map** to see the terrain elevation at that point — lat, lon, and elevation MSL appear in a bar at the bottom of the map.
+   Relative elevation is the angle from the radar to the target versus the angle to the terrain at the same range.
 
-6. **Click "Clear All"** to reset the map and start a new session.
+6. **Click anywhere on the map** to see the terrain elevation at that point — lat, lon, and elevation MSL appear in a bar at the bottom of the map.
+
+7. **Click "Clear All"** to reset the map and start a new session.
 
 The blue circle on the map shows the radar's maximum configured range. The blue marker at the center is the radar position.
 
@@ -157,36 +162,51 @@ The blue circle on the map shows the radar's maximum configured range. The blue 
 
 ```
 radar_sea_level/
-├── include/
-│   ├── constants.h           # Math constants, SRTM resolution parameters
-│   ├── types.h               # LLA, RadarMeasurement, TargetResult, GroundPoint
-│   ├── dted_tile.h           # Single 1°×1° DEM tile
-│   ├── dem_database.h        # Multi-tile manager with bicubic interpolation
-│   ├── elevation_lut.h       # Pre-computed range/azimuth elevation table
-│   ├── radar_compute.h       # Core geometry and AGL computation
-│   └── vendor/               # Header-only dependencies (httplib, nlohmann/json)
-├── src/
-│   ├── dted_tile.cpp
-│   ├── dem_database.cpp
-│   ├── elevation_lut.cpp
-│   └── radar_compute.cpp
-├── app/
-│   ├── query_handler.h/.cpp  # Pure domain logic: RadarQuery → TargetResult
-│   └── radar_server.h/.cpp   # HTTP transport layer (cpp-httplib)
+├── server/
+│   ├── include/
+│   │   ├── constants.h           # Math constants, SRTM resolution parameters
+│   │   ├── types.h               # LLA, RadarMeasurement, TargetResult, GroundPoint
+│   │   ├── coord_convert.h       # UtmPoint, ll_to_utm(), utm_to_ll()
+│   │   ├── dted_tile.h           # Single 1°×1° DEM tile
+│   │   ├── dem_database.h        # Multi-tile manager with bicubic interpolation
+│   │   ├── elevation_lut.h       # Pre-computed range/azimuth elevation table
+│   │   ├── radar_compute.h       # Core geometry and AGL computation
+│   │   ├── relative_angle.h      # elevationToGround(), relativeElevation()
+│   │   ├── earth_model.h         # EarthModel interface (flat / sphere / k43)
+│   │   └── vendor/               # Header-only dependencies (httplib, nlohmann/json)
+│   ├── src/
+│   │   ├── coord_convert.cpp     # UTM ↔ LL conversion (Snyder series, WGS84)
+│   │   ├── dted_tile.cpp         # SRTM/DTED tile loader (auto-detects resolution)
+│   │   ├── dem_database.cpp      # Bicubic interpolation, multi-tile management
+│   │   ├── elevation_lut.cpp     # LUT build and lookup
+│   │   ├── radar_compute.cpp     # groundPoint(), computeTargetSeaLevel()
+│   │   ├── relative_angle.cpp    # Elevation angle to terrain helpers
+│   │   └── earth_model.cpp       # Flat / sphere / 4/3-earth model implementations
+│   ├── app/
+│   │   ├── query_handler.h/.cpp  # Domain logic: RadarQuery → TargetResult, owns LUT
+│   │   ├── radar_server.h/.cpp   # HTTP transport: JSON ↔ QueryHandler
+│   │   ├── lut_exporter.h/.cpp   # Builds and exports the ground-elevation LUT
+│   │   ├── lut_tcp_server.h/.cpp # TCP server: sends raw LUT binary to clients
+│   │   └── target_tcp_server.h/.cpp # TCP server: per-target geometry queries
+│   ├── tests/
+│   │   └── test_query_handler.cpp
+│   ├── main_server.cpp           # HTTP server entry point
+│   ├── main_lut_server.cpp       # LUT TCP server entry point
+│   ├── main_target_server.cpp    # Target TCP server entry point
+│   └── main.cpp                  # CLI demo
 ├── gui/
-│   ├── app.py                # Dash application entry point
-│   ├── api_client.py         # HTTP client for the C++ server
-│   ├── tile_server.py        # Local MBTiles tile server (offline map)
-│   ├── controls.py           # Input panel layout
-│   ├── map_view.py           # Leaflet map with target markers
+│   ├── app.py                    # Dash entry point and all callbacks
+│   ├── api_client.py             # HTTP client for the C++ server + elevation APIs
+│   ├── tile_server.py            # Local MBTiles tile server (offline map)
+│   ├── controls.py               # Left panel layout (radar form, sliders, converter)
+│   ├── map_view.py               # Leaflet map with radar marker and target pins
+│   ├── map_tiles/
+│   │   └── download_tiles.py     # Downloads offline map tiles from OpenStreetMap
+│   ├── tests/
+│   │   └── test_api_client.py
 │   └── requirements.txt
-├── tests/
-│   └── test_query_handler.cpp
-├── main.cpp                  # CLI demo (direct LUT query)
-├── main_server.cpp           # HTTP server entry point
-├── map_tiles/                # Offline map tiles (.mbtiles) — not committed
-├── tiles/                    # DEM tile files (.hgt) — not committed
-└── CMakeLists.txt
+├── tiles/                        # DEM tile files (.hgt) — not committed
+└── run_all.bat                   # Launches server + GUI together (Windows)
 ```
 
 ## DEM Tile Formats Supported
@@ -204,22 +224,17 @@ Resolution is auto-detected from file size. Free SRTM3 tiles (no login required)
 Requires a C++17 compiler and CMake 3.15+. On Windows, build via WSL.
 
 ```bash
-# Demo binary
-g++ -std=c++17 -O2 -Iinclude -o radar_sea_level \
-    main.cpp src/dted_tile.cpp src/dem_database.cpp \
-    src/elevation_lut.cpp src/radar_compute.cpp
-
 # HTTP server binary
 g++ -std=c++17 -O2 -Iinclude -Iapp -o radar_server \
-    main_server.cpp app/query_handler.cpp app/radar_server.cpp \
-    src/dted_tile.cpp src/dem_database.cpp \
-    src/elevation_lut.cpp src/radar_compute.cpp src/relative_angle.cpp -lpthread
+    main_server.cpp app/query_handler.cpp app/radar_server.cpp app/lut_exporter.cpp \
+    src/coord_convert.cpp src/dted_tile.cpp src/dem_database.cpp \
+    src/elevation_lut.cpp src/radar_compute.cpp src/relative_angle.cpp src/earth_model.cpp -lpthread
 
 # LUT TCP export server
 g++ -std=c++17 -O2 -Iinclude -Iapp -o lut_server \
     main_lut_server.cpp app/lut_exporter.cpp app/lut_tcp_server.cpp \
-    src/dted_tile.cpp src/dem_database.cpp \
-    src/elevation_lut.cpp src/radar_compute.cpp src/relative_angle.cpp -lpthread
+    src/coord_convert.cpp src/dted_tile.cpp src/dem_database.cpp \
+    src/elevation_lut.cpp src/radar_compute.cpp src/relative_angle.cpp src/earth_model.cpp -lpthread
 ```
 
 ## Usage — HTTP Server + GUI
@@ -255,14 +270,12 @@ pip install -r gui/requirements.txt
 python gui/app.py
 ```
 
-Open `http://localhost:8050` in a browser. Set range, azimuth, and elevation, click **Add Target** to plot measurements on the map. Targets are color-coded by AGL:
+Open `http://localhost:8050` in a browser. Set the radar position (lat, lon, height AGL), then set range, azimuth, and elevation and click **Add Target** to plot measurements on the map. Targets are color-coded by relative elevation angle to terrain:
 
-| Color | AGL |
-|-------|-----|
-| 🔴 Red | < 50 m |
-| 🟠 Orange | 50–300 m |
-| 🟡 Yellow | 300–1000 m |
-| 🟢 Green | > 1000 m |
+| Color | Relative elevation | Meaning |
+|-------|--------------------|---------|
+| 🔵 Blue | > 1.0° | Air target |
+| 🔴 Red | ≤ 1.0° | Ground / masked |
 
 The map runs fully offline using locally cached tiles.
 
@@ -352,11 +365,20 @@ TargetResult res = computeTargetSeaLevel(radar, meas, lut);
 ### HTTP API
 
 ```
-POST /query
-Content-Type: application/json
-{ "range_m": 8000, "azimuth_deg": 45.0, "elevation_deg": -0.5,
-  "earth_model": "flat" | "sphere" | "k43"   (optional; default "flat") }
+POST /radar
+{ "lat_deg": 32.08, "lon_deg": 34.76, "agl_m": 10 }
+→ 200 { "lat_deg": ..., "lon_deg": ..., "alt_m": <MSL computed from DEM + agl>,
+         "ground_elev_m": ..., "agl_m": ..., "max_range_m": ...,
+         "lut": { "az_count": ..., "range_count": ..., "az_step_deg": ..., "range_step_m": ... } }
 
+GET /lut
+→ 200  binary: uint32 az_count, uint32 range_count, int32[az_count * range_count]
+        layout: cells[az_idx * range_count + range_idx], little-endian, elevation MSL (m)
+
+POST /query
+{ "range_m": 8000, "azimuth_deg": 45.0, "elevation_deg": -0.5,
+  "ground_elevation_m": <from LUT lookup>,
+  "earth_model": "flat" | "sphere" | "k43"   (optional; default "flat") }
 → 200 { "lat_deg": ..., "lon_deg": ..., "alt_msl_m": ...,
          "ground_elev_m": ..., "agl_m": ..., "horiz_range_m": ...,
          "relative_elev_deg": ..., "earth_model": "flat" }
