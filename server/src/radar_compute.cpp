@@ -1,6 +1,7 @@
 #include "radar_compute.h"
 #include "constants.h"
 #include <cmath>
+#include <memory>
 
 // Flat-Earth projection of a horizontal range + azimuth onto the ground.
 // Latitude offset is uniform (1 rad = EARTH_RADIUS m).
@@ -15,51 +16,63 @@ GroundPoint groundPoint(const LLA& radar, double horiz_range_m, double azimuth_d
     };
 }
 
-// Decomposes slant range into horizontal and vertical components,
-// then projects the ground point and sets target altitude.
-// Elevation angle sign: positive = above horizon, negative = below.
-static TargetResult computeGeometry(const LLA& radar, const RadarMeasurement& meas)
+static const IEarthModel& flat_model()
 {
-    const double el_rad      = meas.elevation_deg * DEG2RAD;
-    const double horiz_range = meas.range_m * std::cos(el_rad); // ground distance
-    const double vert_offset = meas.range_m * std::sin(el_rad); // signed height gain
-    GroundPoint gp           = groundPoint(radar, horiz_range, meas.azimuth_deg);
-
-    TargetResult res;
-    res.horizontal_range_m = horiz_range;
-    res.vertical_offset_m  = vert_offset;
-    res.position           = { gp.lat_deg, gp.lon_deg, radar.alt_m + vert_offset };
-    return res;
+    static const std::unique_ptr<IEarthModel> m = makeEarthModel("flat");
+    return *m;
 }
+
+// ── Model-aware overloads ────────────────────────────────────────────────────
 
 TargetResult computeTargetSeaLevel(const LLA& radar,
                                    const RadarMeasurement& meas,
-                                   const DemDatabase& dem)
+                                   const DemDatabase& dem,
+                                   const IEarthModel& model)
 {
-    TargetResult res        = computeGeometry(radar, meas);
+    TargetResult res        = model.propagate(radar, meas);
     res.ground_elevation_m  = dem.getElevation(res.position.lat_deg, res.position.lon_deg);
     res.target_height_agl_m = res.position.alt_m - res.ground_elevation_m;
     return res;
 }
 
-// LUT overload — O(1) ground elevation lookup; used for high-rate target streams.
 TargetResult computeTargetSeaLevel(const LLA& radar,
                                    const RadarMeasurement& meas,
-                                   const ElevationLUT& lut)
+                                   const ElevationLUT& lut,
+                                   const IEarthModel& model)
 {
-    TargetResult res        = computeGeometry(radar, meas);
+    TargetResult res        = model.propagate(radar, meas);
     res.ground_elevation_m  = lut.lookup(res.horizontal_range_m, meas.azimuth_deg);
     res.target_height_agl_m = res.position.alt_m - res.ground_elevation_m;
     return res;
 }
 
-// Caller-provided overload — no DEM or LUT access; used when the client holds a height map.
 TargetResult computeTargetSeaLevel(const LLA& radar,
                                    const RadarMeasurement& meas,
-                                   double ground_elevation_m)
+                                   double ground_elevation_m,
+                                   const IEarthModel& model)
 {
-    TargetResult res        = computeGeometry(radar, meas);
+    TargetResult res        = model.propagate(radar, meas);
     res.ground_elevation_m  = ground_elevation_m;
     res.target_height_agl_m = res.position.alt_m - ground_elevation_m;
     return res;
+}
+
+// ── Flat-Earth overloads (delegate to model-aware versions) ──────────────────
+
+TargetResult computeTargetSeaLevel(const LLA& radar, const RadarMeasurement& meas,
+                                   const DemDatabase& dem)
+{
+    return computeTargetSeaLevel(radar, meas, dem, flat_model());
+}
+
+TargetResult computeTargetSeaLevel(const LLA& radar, const RadarMeasurement& meas,
+                                   const ElevationLUT& lut)
+{
+    return computeTargetSeaLevel(radar, meas, lut, flat_model());
+}
+
+TargetResult computeTargetSeaLevel(const LLA& radar, const RadarMeasurement& meas,
+                                   double ground_elevation_m)
+{
+    return computeTargetSeaLevel(radar, meas, ground_elevation_m, flat_model());
 }

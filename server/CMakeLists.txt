@@ -24,6 +24,7 @@ set(CORE_SOURCES
     src/coord_convert.cpp
     src/dted_tile.cpp
     src/dem_database.cpp
+    src/earth_model.cpp
     src/elevation_lut.cpp
     src/radar_compute.cpp
     src/relative_angle.cpp

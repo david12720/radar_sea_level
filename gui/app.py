@@ -128,18 +128,19 @@ def main():
         State("input-azimuth",   "value"),
         State("input-elevation", "value"),
         State("chk-open-elevation", "value"),
+        State("input-earth-model", "value"),
         State("targets-store",   "data"),
         State("target-counter",  "data"),
         prevent_initial_call=True,
     )
     def handle_buttons(add_clicks, clear_clicks, range_m, azimuth, elevation,
-                       use_open_elev, targets, counter):
+                       use_open_elev, earth_model, targets, counter):
         from dash import ctx
         if ctx.triggered_id == "btn-clear":
             return [], 0, ""
 
         try:
-            result = client.query(range_m, azimuth, elevation)
+            result = client.query(range_m, azimuth, elevation, earth_model=earth_model)
         except RuntimeError as e:
             return no_update, no_update, str(e)
 

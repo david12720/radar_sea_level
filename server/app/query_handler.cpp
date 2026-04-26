@@ -1,6 +1,7 @@
 #include "query_handler.h"
 #include "radar_compute.h"
 #include "relative_angle.h"
+#include "earth_model.h"
 #include <sstream>
 
 QueryHandler::QueryHandler(double max_range_m, const std::string& tiles_dir)
@@ -43,10 +44,13 @@ TargetResult QueryHandler::handle(const RadarQuery& q) const
     validate(q);
     RadarMeasurement meas { q.range_m, q.azimuth_deg, q.elevation_deg };
     try {
-        TargetResult r = computeTargetSeaLevel(radar_, meas, dem_);
+        auto model = makeEarthModel(q.earth_model);
+        TargetResult r = computeTargetSeaLevel(radar_, meas, dem_, *model);
         double elev_to_gnd = elevationToGround(radar_, r.horizontal_range_m, r.ground_elevation_m);
         r.relative_elevation_deg = relativeElevation(q.elevation_deg, elev_to_gnd);
         return r;
+    } catch (const std::invalid_argument& e) {
+        throw ValidationError(e.what());
     } catch (const std::runtime_error& e) {
         throw NoCoverageError(e.what());
     }

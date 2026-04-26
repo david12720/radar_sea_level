@@ -96,6 +96,7 @@
     <ClCompile Include="src\coord_convert.cpp" />
     <ClCompile Include="src\dted_tile.cpp" />
     <ClCompile Include="src\dem_database.cpp" />
+    <ClCompile Include="src\earth_model.cpp" />
     <ClCompile Include="src\elevation_lut.cpp" />
     <ClCompile Include="src\radar_compute.cpp" />
     <ClCompile Include="src\relative_angle.cpp" />
@@ -108,6 +109,7 @@
     <ClInclude Include="include\coord_convert.h" />
     <ClInclude Include="include\dted_tile.h" />
     <ClInclude Include="include\dem_database.h" />
+    <ClInclude Include="include\earth_model.h" />
     <ClInclude Include="include\elevation_lut.h" />
     <ClInclude Include="include\radar_compute.h" />
     <ClInclude Include="include\relative_angle.h" />

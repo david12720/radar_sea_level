@@ -86,9 +86,20 @@ def layout(online_mode: bool = False) -> html.Div:
                 style={"fontSize": "11px", "marginLeft": "6px",
                        "color": "green" if online_mode else "#aaa"},
             ),
-        ], style={"marginBottom": "10px", "display": "flex", "alignItems": "center"}),
+        ], style={"marginTop": "16px", "marginBottom": "10px", "display": "flex", "alignItems": "center"}),
 
-        html.Br(),
+        html.Label("Earth model"),
+        dcc.Dropdown(
+            id="input-earth-model",
+            options=[
+                {"label": "Flat (fast, <50 km)",           "value": "flat"},
+                {"label": "Spherical (R = 6371 km)",       "value": "sphere"},
+                {"label": "Refractive 4/3 (atmospheric)",  "value": "k43"},
+            ],
+            value="flat", clearable=False,
+            style={"fontSize": "13px", "marginBottom": "12px"},
+        ),
+
         html.Div([
             html.Button("Add Target", id="btn-add", n_clicks=0,
                         style={"marginRight": "12px", "padding": "8px 20px",

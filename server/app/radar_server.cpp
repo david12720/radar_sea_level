@@ -1,5 +1,6 @@
 #include "radar_server.h"
 #include "coord_convert.h"
+#include "earth_model.h"
 #include "vendor/httplib.h"
 #include "vendor/json.hpp"
 #include <iostream>
@@ -118,6 +119,8 @@ void RadarServer::start()
             q.range_m       = body.at("range_m").get<double>();
             q.azimuth_deg   = body.at("azimuth_deg").get<double>();
             q.elevation_deg = body.at("elevation_deg").get<double>();
+            if (body.contains("earth_model"))
+                q.earth_model = body.at("earth_model").get<std::string>();
         } catch (...) {
             res.status = 400;
             res.set_content(R"({"error":"bad request: fields must be numbers"})", "application/json");
@@ -132,7 +135,8 @@ void RadarServer::start()
                     throw RadarNotSetError("radar position not set");
                 double ground_elev = body.at("ground_elevation_m").get<double>();
                 RadarMeasurement meas { q.range_m, q.azimuth_deg, q.elevation_deg };
-                r = computeTargetSeaLevel(handler_.radar(), meas, ground_elev);
+                auto model = makeEarthModel(q.earth_model);
+                r = computeTargetSeaLevel(handler_.radar(), meas, ground_elev, *model);
                 double elev_to_gnd = elevationToGround(handler_.radar(), r.horizontal_range_m, ground_elev);
                 r.relative_elevation_deg = relativeElevation(q.elevation_deg, elev_to_gnd);
             } else {
@@ -146,6 +150,7 @@ void RadarServer::start()
             out["agl_m"]             = r.target_height_agl_m;
             out["horiz_range_m"]     = r.horizontal_range_m;
             out["relative_elev_deg"] = r.relative_elevation_deg;
+            out["earth_model"]       = q.earth_model.empty() ? "flat" : q.earth_model;
             res.set_content(out.dump(), "application/json");
         } catch (const RadarNotSetError& e) {
             res.status = 503;
