@@ -15,8 +15,18 @@ def ping_open_elevation(timeout: float = 3.0) -> bool:
         r = requests.post(OPEN_ELEVATION_URL,
                           json={"locations": [{"latitude": 0, "longitude": 0}]},
                           timeout=timeout)
-        return r.status_code == 200
-    except requests.RequestException:
+        if r.status_code == 200:
+            return True
+        print(f"[gui] Open Elevation ping failed with status {r.status_code}: {r.text[:100]}")
+        return False
+    except requests.exceptions.Timeout:
+        print("[gui] Open Elevation ping failed: Connection timed out")
+        return False
+    except requests.exceptions.ConnectionError:
+        print("[gui] Open Elevation ping failed: Could not connect to host (check internet)")
+        return False
+    except requests.RequestException as e:
+        print(f"[gui] Open Elevation ping failed: {e}")
         return False
 
 
