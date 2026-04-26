@@ -18,8 +18,7 @@ GroundPoint groundPoint(const LLA& radar, double horiz_range_m, double azimuth_d
 
 static const IEarthModel& flat_model()
 {
-    static const std::unique_ptr<IEarthModel> m = makeEarthModel("flat");
-    return *m;
+    return getEarthModel("flat");
 }
 
 // ── Model-aware overloads ────────────────────────────────────────────────────

@@ -98,13 +98,14 @@ private:
 
 } // namespace
 
-std::unique_ptr<IEarthModel> makeEarthModel(const std::string& name)
+const IEarthModel& getEarthModel(const std::string& name)
 {
-    if (name.empty() || name == "flat")
-        return std::make_unique<FlatEarthModel>();
-    if (name == "sphere")
-        return std::make_unique<SphericalEarthModel>(EARTH_RADIUS, "sphere");
-    if (name == "k43")
-        return std::make_unique<SphericalEarthModel>((4.0/3.0) * EARTH_RADIUS, "k43");
+    static const FlatEarthModel flat;
+    static const SphericalEarthModel sphere(EARTH_RADIUS, "sphere");
+    static const SphericalEarthModel k43((4.0/3.0) * EARTH_RADIUS, "k43");
+
+    if (name.empty() || name == "flat") return flat;
+    if (name == "sphere") return sphere;
+    if (name == "k43") return k43;
     throw std::invalid_argument("unknown earth_model '" + name + "' (expected flat|sphere|k43)");
 }

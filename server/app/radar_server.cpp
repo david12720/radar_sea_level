@@ -104,17 +104,18 @@ void RadarServer::start()
                             "application/json");
             return;
         }
-        const auto& cells = handler_.lutCells();
-        LutMetadata meta  = handler_.lutMetadata();
+        const int32_t* cells = handler_.lutCells();
+        size_t cells_count   = handler_.lutCellsSize();
+        LutMetadata meta     = handler_.lutMetadata();
 
-        size_t body_size = 2 * sizeof(uint32_t) + cells.size() * sizeof(int32_t);
+        size_t body_size = 2 * sizeof(uint32_t) + cells_count * sizeof(int32_t);
         std::string body(body_size, '\0');
 
         uint32_t az    = meta.az_count;
         uint32_t range = meta.range_count;
         std::memcpy(body.data(),     &az,          sizeof(az));
         std::memcpy(body.data() + 4, &range,       sizeof(range));
-        std::memcpy(body.data() + 8, cells.data(), cells.size() * sizeof(int32_t));
+        std::memcpy(body.data() + 8, cells,        cells_count * sizeof(int32_t));
 
         res.set_content(body, "application/octet-stream");
     });

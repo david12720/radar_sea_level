@@ -54,8 +54,9 @@ public:
     double      maxRange()          const { return max_range_m_; }
     double      radarGroundElev()   const { return radar_ground_elev_m_; }
 
-    const std::vector<int32_t>& lutCells()    const { return lut_cells_; }
-    LutMetadata                 lutMetadata() const;
+    const int32_t* lutCells()    const { return lut_cells_pool_; }
+    size_t         lutCellsSize() const { return static_cast<size_t>(lut_az_count_) * lut_range_count_; }
+    LutMetadata    lutMetadata() const;
 
 private:
     double      max_range_m_;
@@ -64,9 +65,9 @@ private:
     bool        radar_set_            = false;
     double      radar_ground_elev_m_  = 0.0;
 
-    std::vector<int32_t> lut_cells_;
-    uint32_t             lut_az_count_    = 0;
-    uint32_t             lut_range_count_ = 0;
+    static int32_t lut_cells_pool_[MAX_LUT_RANGES * MAX_LUT_AZIMUTHS];
+    uint32_t       lut_az_count_    = 0;
+    uint32_t       lut_range_count_ = 0;
     static constexpr double lut_az_step_deg_  = 0.1;
     static constexpr double lut_range_step_m_ = 15.0;
 

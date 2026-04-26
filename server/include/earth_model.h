@@ -22,4 +22,4 @@ public:
 
 // Accepted: "" or "flat", "sphere", "k43".
 // Throws std::invalid_argument on unknown names.
-std::unique_ptr<IEarthModel> makeEarthModel(const std::string& name);
+const IEarthModel& getEarthModel(const std::string& name);

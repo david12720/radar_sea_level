@@ -4,7 +4,11 @@
 #include "relative_angle.h"
 #include "earth_model.h"
 #include <cmath>
+#include <cstring>
+#include <algorithm>
 #include <sstream>
+
+int32_t QueryHandler::lut_cells_pool_[MAX_LUT_RANGES * MAX_LUT_AZIMUTHS];
 
 QueryHandler::QueryHandler(double max_range_m, const std::string& tiles_dir)
     : max_range_m_(max_range_m), tiles_dir_(tiles_dir) {}
@@ -20,7 +24,7 @@ bool QueryHandler::setRadar(double lat_deg, double lon_deg, double alt_msl_m)
     }
 
     LutExportData data    = exporter.exportData();
-    lut_cells_.assign(data.cells, data.cells + data.total_cells);
+    std::copy(data.cells, data.cells + data.total_cells, lut_cells_pool_);
     lut_az_count_         = data.az_count;
     lut_range_count_      = data.range_count;
     radar_ground_elev_m_  = exporter.radarTerrainM();
@@ -50,6 +54,7 @@ LutMetadata QueryHandler::lutMetadata() const
 void QueryHandler::validate(const RadarQuery& q) const
 {
     if (q.range_m < 0.0 || q.range_m > max_range_m_) {
+        // Validation errors happen rarely; string allocation is acceptable for error reporting.
         std::ostringstream oss;
         oss << "range_m must be in [0, " << max_range_m_ << "]";
         throw ValidationError(oss.str());
@@ -67,8 +72,8 @@ TargetResult QueryHandler::handle(const RadarQuery& q) const
     validate(q);
     RadarMeasurement meas { q.range_m, q.azimuth_deg, q.elevation_deg };
     try {
-        auto model = makeEarthModel(q.earth_model);
-        TargetResult r = computeTargetSeaLevel(radar_, meas, q.ground_elevation_m, *model);
+        const auto& model = getEarthModel(q.earth_model);
+        TargetResult r = computeTargetSeaLevel(radar_, meas, q.ground_elevation_m, model);
         double elev_to_gnd = elevationToGround(radar_, r.horizontal_range_m, q.ground_elevation_m);
         r.relative_elevation_deg = relativeElevation(q.elevation_deg, elev_to_gnd);
         return r;
