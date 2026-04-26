@@ -4,6 +4,10 @@ Only this file knows the server URLs.
 """
 
 import requests
+import urllib3
+
+# Suppress InsecureRequestWarning when using verify=False
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 OPEN_ELEVATION_URL = "https://api.open-elevation.com/api/v1/lookup"
 OPEN_METEO_URL     = "https://api.open-meteo.com/v1/elevation"
@@ -36,11 +40,12 @@ def ping_open_elevation(timeout: float = 3.0) -> bool:
 
 
 def get_open_elevation(lat: float, lon: float, timeout: float = 5.0) -> float:
-    """Returns terrain elevation MSL (m) from Open Elevation API (SRTM)."""
+    """Returns terrain elevation MSL (m) from Open Elevation API (SRTM). Skips SSL verification."""
     try:
         r = requests.post(OPEN_ELEVATION_URL,
                           json={"locations": [{"latitude": lat, "longitude": lon}]},
-                          timeout=timeout)
+                          timeout=timeout,
+                          verify=False)
     except requests.RequestException as e:
         raise RuntimeError(f"Open Elevation unreachable: {e}") from e
     if r.status_code != 200:
@@ -52,11 +57,12 @@ def get_open_elevation(lat: float, lon: float, timeout: float = 5.0) -> float:
 
 
 def get_open_meteo_elevation(lat: float, lon: float, timeout: float = 5.0) -> float:
-    """Returns terrain elevation MSL (m) from Open-Meteo API (Copernicus DEM 90m)."""
+    """Returns terrain elevation MSL (m) from Open-Meteo API (Copernicus DEM 90m). Skips SSL verification."""
     try:
         r = requests.get(OPEN_METEO_URL,
                          params={"latitude": lat, "longitude": lon},
-                         timeout=timeout)
+                         timeout=timeout,
+                         verify=False)
     except requests.RequestException as e:
         raise RuntimeError(f"Open-Meteo unreachable: {e}") from e
     if r.status_code != 200:
