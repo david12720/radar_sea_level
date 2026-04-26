@@ -5,9 +5,10 @@
 #include <stdexcept>
 
 struct RadarQuery {
-    double range_m;
-    double azimuth_deg;
-    double elevation_deg;
+    double      range_m;
+    double      azimuth_deg;
+    double      elevation_deg;
+    std::string earth_model; // "" or "flat" | "sphere" | "k43"
 };
 
 // Thrown when the queried location falls outside loaded DEM tile coverage.

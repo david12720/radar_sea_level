@@ -4,28 +4,48 @@ Only this file knows the server URLs.
 """
 
 import requests
+import urllib3
+
+# Suppress InsecureRequestWarning when using verify=False
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 OPEN_ELEVATION_URL = "https://api.open-elevation.com/api/v1/lookup"
 OPEN_METEO_URL     = "https://api.open-meteo.com/v1/elevation"
 
 
 def ping_open_elevation(timeout: float = 3.0) -> bool:
-    """Returns True if the Open Elevation API is reachable."""
+    """Returns True if the Open Elevation API is reachable. Skips SSL verification."""
     try:
+        # verify=False skips SSL certificate validation (common issue with local proxies/certs)
         r = requests.post(OPEN_ELEVATION_URL,
                           json={"locations": [{"latitude": 0, "longitude": 0}]},
-                          timeout=timeout)
-        return r.status_code == 200
-    except requests.RequestException:
+                          timeout=timeout,
+                          verify=False)
+        if r.status_code == 200:
+            return True
+        print(f"[gui] Open Elevation ping failed with status {r.status_code}: {r.text[:100]}")
+        return False
+    except requests.exceptions.SSLError as e:
+        print(f"[gui] Open Elevation SSL Error (even with verify=False): {e}")
+        return False
+    except requests.exceptions.Timeout:
+        print("[gui] Open Elevation ping failed: Connection timed out")
+        return False
+    except requests.exceptions.ConnectionError:
+        print("[gui] Open Elevation ping failed: Could not connect to host (check internet)")
+        return False
+    except requests.RequestException as e:
+        print(f"[gui] Open Elevation ping failed: {e}")
         return False
 
 
 def get_open_elevation(lat: float, lon: float, timeout: float = 5.0) -> float:
-    """Returns terrain elevation MSL (m) from Open Elevation API (SRTM)."""
+    """Returns terrain elevation MSL (m) from Open Elevation API (SRTM). Skips SSL verification."""
     try:
         r = requests.post(OPEN_ELEVATION_URL,
                           json={"locations": [{"latitude": lat, "longitude": lon}]},
-                          timeout=timeout)
+                          timeout=timeout,
+                          verify=False)
     except requests.RequestException as e:
         raise RuntimeError(f"Open Elevation unreachable: {e}") from e
     if r.status_code != 200:
@@ -37,11 +57,12 @@ def get_open_elevation(lat: float, lon: float, timeout: float = 5.0) -> float:
 
 
 def get_open_meteo_elevation(lat: float, lon: float, timeout: float = 5.0) -> float:
-    """Returns terrain elevation MSL (m) from Open-Meteo API (Copernicus DEM 90m)."""
+    """Returns terrain elevation MSL (m) from Open-Meteo API (Copernicus DEM 90m). Skips SSL verification."""
     try:
         r = requests.get(OPEN_METEO_URL,
                          params={"latitude": lat, "longitude": lon},
-                         timeout=timeout)
+                         timeout=timeout,
+                         verify=False)
     except requests.RequestException as e:
         raise RuntimeError(f"Open-Meteo unreachable: {e}") from e
     if r.status_code != 200:
@@ -108,12 +129,52 @@ class RadarApiClient:
             msg = r.text
         raise RuntimeError(f"Server error {r.status_code}: {msg}")
 
+    def convert_ll_to_utm(self, lat_deg: float, lon_deg: float) -> dict:
+        """
+        Returns dict with keys: easting, northing, zone, hemisphere ('N'/'S').
+        Raises RuntimeError on failure.
+        """
+        payload = {"direction": "ll_to_utm", "lat_deg": lat_deg, "lon_deg": lon_deg}
+        try:
+            r = requests.post(f"{self._base}/convert", json=payload, timeout=5)
+        except requests.RequestException as e:
+            raise RuntimeError(f"Cannot reach radar server: {e}") from e
+        if r.status_code == 200:
+            return r.json()
+        try:
+            msg = r.json().get("error", r.text)
+        except Exception:
+            msg = r.text
+        raise RuntimeError(f"Server error {r.status_code}: {msg}")
+
+    def convert_utm_to_ll(self, easting: float, northing: float,
+                          zone: int, hemisphere: str) -> dict:
+        """
+        Returns dict with keys: lat_deg, lon_deg.
+        hemisphere: 'N' or 'S'
+        Raises RuntimeError on failure.
+        """
+        payload = {"direction": "utm_to_ll", "easting": easting, "northing": northing,
+                   "zone": zone, "hemisphere": hemisphere.upper()}
+        try:
+            r = requests.post(f"{self._base}/convert", json=payload, timeout=5)
+        except requests.RequestException as e:
+            raise RuntimeError(f"Cannot reach radar server: {e}") from e
+        if r.status_code == 200:
+            return r.json()
+        try:
+            msg = r.json().get("error", r.text)
+        except Exception:
+            msg = r.text
+        raise RuntimeError(f"Server error {r.status_code}: {msg}")
+
     def query(self, range_m: float, azimuth_deg: float, elevation_deg: float,
-              ground_elevation_m: float = None) -> dict:
+              ground_elevation_m: float = None, earth_model: str = None) -> dict:
         """
         Returns dict with keys: lat_deg, lon_deg, alt_msl_m, ground_elev_m, agl_m,
-                                horiz_range_m, relative_elev_deg
+                                horiz_range_m, relative_elev_deg, earth_model
         If ground_elevation_m is provided, the server uses it directly (no DEM lookup).
+        earth_model: 'flat' (default) | 'sphere' | 'k43'
         Raises RuntimeError with a user-facing message on 4xx/5xx or connection failure.
         """
         payload = {
@@ -123,6 +184,8 @@ class RadarApiClient:
         }
         if ground_elevation_m is not None:
             payload["ground_elevation_m"] = ground_elevation_m
+        if earth_model:
+            payload["earth_model"] = earth_model
         try:
             r = requests.post(f"{self._base}/query", json=payload, timeout=5)
         except requests.RequestException as e:

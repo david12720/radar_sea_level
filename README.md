@@ -354,10 +354,12 @@ TargetResult res = computeTargetSeaLevel(radar, meas, lut);
 ```
 POST /query
 Content-Type: application/json
-{ "range_m": 8000, "azimuth_deg": 45.0, "elevation_deg": -0.5 }
+{ "range_m": 8000, "azimuth_deg": 45.0, "elevation_deg": -0.5,
+  "earth_model": "flat" | "sphere" | "k43"   (optional; default "flat") }
 
 → 200 { "lat_deg": ..., "lon_deg": ..., "alt_msl_m": ...,
-         "ground_elev_m": ..., "agl_m": ..., "horiz_range_m": ... }
+         "ground_elev_m": ..., "agl_m": ..., "horiz_range_m": ...,
+         "relative_elev_deg": ..., "earth_model": "flat" }
 → 400 { "error": "validation failed: ..." }
 → 422 { "error": "no DEM coverage at target location" }
 
@@ -391,6 +393,38 @@ A difference larger than ~10 m usually means the queried coordinate is near a ti
 ### Note on landmark labels vs. DEM elevation
 
 Map labels (e.g. "הר חירייה 75m") show the commonly cited or engineered height of a landmark — not necessarily what the SRTM satellite measured. Har Hiriya, for example, is a man-made landfill hill; its SRTM-measured terrain height (~66–68 m) is lower than the engineering design figure (75 m) cited on the map. This is expected and does not indicate an error in the system.
+
+---
+
+## Validating Target Position Accuracy
+
+The `/query` endpoint supports three earth models (chosen per request via the `earth_model` field, or from the GUI dropdown):
+
+| Model    | Formula                  | When to use                                              |
+|----------|--------------------------|----------------------------------------------------------|
+| `flat`   | Tangent-plane trig       | Short ranges (< ~20 km), backward-compatible default     |
+| `sphere` | Great-circle + true sphere (R = 6371 km) | Long ranges, no atmospheric correction |
+| `k43`    | Great-circle + 4/3 Earth radius (R ≈ 8495 km) | Long ranges *with* standard atmospheric refraction — matches most radar-engineering textbooks |
+
+**Cross-check the great-circle destination math** against the reference implementation at [movable-type.co.uk/scripts/latlong.html](https://www.movable-type.co.uk/scripts/latlong.html):
+
+1. On the site, scroll to the **"Destination point given distance and bearing from start point"** section.
+2. Enter:
+   - **Start point:** your radar lat/lon
+   - **Bearing:** the target azimuth
+   - **Distance:** the *ground-arc* distance (for elevation = 0°, this equals the radar range; otherwise it's `range × cos(elevation)` for flat earth, or the `horiz_range_m` returned by `sphere` / `k43`)
+3. Query `/query` with the same radar, azimuth and range, and `earth_model=sphere`.
+4. Compare the returned `lat_deg` / `lon_deg` to the movable-type result — they should agree to < 1 cm for distances under ~100 km.
+
+Expected differences **between earth models** at 50 km, elevation 0°:
+
+| Error source           | flat         | sphere       | k43          |
+|------------------------|--------------|--------------|--------------|
+| Target altitude (m)    | ~0           | ~196 below   | ~147 below   |
+| Ground arc length (m)  | 50 000       | 49 998       | 49 998       |
+| Lat/lon drift (m)      | 0            | ~2           | ~2           |
+
+These are expected, not bugs. Use `k43` if you care about AGL accuracy at long range; use `flat` for fast short-range work.
 
 ---
 

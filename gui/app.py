@@ -128,18 +128,19 @@ def main():
         State("input-azimuth",   "value"),
         State("input-elevation", "value"),
         State("chk-open-elevation", "value"),
+        State("input-earth-model", "value"),
         State("targets-store",   "data"),
         State("target-counter",  "data"),
         prevent_initial_call=True,
     )
     def handle_buttons(add_clicks, clear_clicks, range_m, azimuth, elevation,
-                       use_open_elev, targets, counter):
+                       use_open_elev, earth_model, targets, counter):
         from dash import ctx
         if ctx.triggered_id == "btn-clear":
             return [], 0, ""
 
         try:
-            result = client.query(range_m, azimuth, elevation)
+            result = client.query(range_m, azimuth, elevation, earth_model=earth_model)
         except RuntimeError as e:
             return no_update, no_update, str(e)
 
@@ -169,6 +170,47 @@ def main():
     )
     def update_map(targets):
         return map_view.build_target_markers(targets)
+
+    @callback(
+        Output("conv-ll-to-utm-result", "children"),
+        Input("btn-ll-to-utm", "n_clicks"),
+        State("conv-lat", "value"),
+        State("conv-lon", "value"),
+        prevent_initial_call=True,
+    )
+    def convert_ll_to_utm(n_clicks, lat, lon):
+        if not lat or not lon:
+            return "Enter lat and lon."
+        try:
+            lat_f = float(lat)
+            lon_f = float(lon)
+        except (ValueError, TypeError):
+            return "Lat and lon must be numbers."
+        try:
+            r = client.convert_ll_to_utm(lat_f, lon_f)
+            return (f"E {r['easting']:.1f}  N {r['northing']:.1f}  "
+                    f"Zone {r['zone']}{r['hemisphere']}")
+        except RuntimeError as e:
+            return str(e)
+
+    @callback(
+        Output("conv-utm-to-ll-result", "children"),
+        Input("btn-utm-to-ll", "n_clicks"),
+        State("conv-easting",   "value"),
+        State("conv-northing",  "value"),
+        State("conv-zone",      "value"),
+        State("conv-hemisphere","value"),
+        prevent_initial_call=True,
+    )
+    def convert_utm_to_ll(n_clicks, easting, northing, zone, hemisphere):
+        if easting is None or northing is None or zone is None:
+            return "Enter easting, northing, and zone."
+        try:
+            r = client.convert_utm_to_ll(float(easting), float(northing),
+                                         int(zone), hemisphere)
+            return f"Lat {r['lat_deg']:.7f}°  Lon {r['lon_deg']:.7f}°"
+        except RuntimeError as e:
+            return str(e)
 
     @callback(
         Output("elevation-bar", "children"),

@@ -74,21 +74,35 @@ def layout(online_mode: bool = False) -> html.Div:
         html.Div([
             dcc.Checklist(
                 id="chk-open-elevation",
-                options=[{"label": " Use Open Elevation API", "value": "on"}],
+                options=[{
+                    "label": " Use Open Elevation API",
+                    "value": "on",
+                    "disabled": not online_mode,
+                }],
                 value=[],
                 style={"fontSize": "13px",
                        "color": "#333" if online_mode else "#aaa"},
                 inputStyle={"cursor": "pointer" if online_mode else "not-allowed"},
-                **({"disabled": True} if not online_mode else {}),
             ),
             html.Span(
                 "● Online" if online_mode else "● Offline",
                 style={"fontSize": "11px", "marginLeft": "6px",
                        "color": "green" if online_mode else "#aaa"},
             ),
-        ], style={"marginBottom": "10px", "display": "flex", "alignItems": "center"}),
+        ], style={"marginTop": "16px", "marginBottom": "10px", "display": "flex", "alignItems": "center"}),
 
-        html.Br(),
+        html.Label("Earth model"),
+        dcc.Dropdown(
+            id="input-earth-model",
+            options=[
+                {"label": "Flat (fast, <50 km)",           "value": "flat"},
+                {"label": "Spherical (R = 6371 km)",       "value": "sphere"},
+                {"label": "Refractive 4/3 (atmospheric)",  "value": "k43"},
+            ],
+            value="flat", clearable=False,
+            style={"fontSize": "13px", "marginBottom": "12px"},
+        ),
+
         html.Div([
             html.Button("Add Target", id="btn-add", n_clicks=0,
                         style={"marginRight": "12px", "padding": "8px 20px",
@@ -103,6 +117,75 @@ def layout(online_mode: bool = False) -> html.Div:
         html.Br(),
         html.Div(id="error-msg",
                  style={"color": "red", "fontWeight": "bold", "minHeight": "24px"}),
+
+        html.Hr(style={"margin": "16px 0"}),
+
+        # ── Coordinate converter ──────────────────────────────────────────────
+        html.H3("Coordinate Converter", style={"marginBottom": "12px"}),
+
+        # ── LL → UTM ──────────────────────────────────────────────────────────
+        html.Div("Lat/Lon → UTM (WGS84)", style={"fontWeight": "bold",
+                                                   "fontSize": "13px",
+                                                   "marginBottom": "6px"}),
+        html.Label("Latitude (°)"),
+        dcc.Input(id="conv-lat", type="text", placeholder="e.g. 32.0",
+                  debounce=True,
+                  style={"width": "100%", "marginBottom": "6px", "padding": "4px"}),
+        html.Label("Longitude (°)"),
+        dcc.Input(id="conv-lon", type="text", placeholder="e.g. 35.0",
+                  debounce=True,
+                  style={"width": "100%", "marginBottom": "8px", "padding": "4px"}),
+        html.Button("Convert →", id="btn-ll-to-utm", n_clicks=0,
+                    style={"width": "100%", "padding": "6px",
+                           "backgroundColor": "#5f6368", "color": "white",
+                           "border": "none", "borderRadius": "4px", "cursor": "pointer",
+                           "marginBottom": "6px"}),
+        html.Div(id="conv-ll-to-utm-result",
+                 style={"fontSize": "12px", "minHeight": "18px", "marginBottom": "12px",
+                        "fontFamily": "monospace", "wordBreak": "break-all"}),
+
+        # ── UTM → LL ──────────────────────────────────────────────────────────
+        html.Div("UTM → Lat/Lon (WGS84)", style={"fontWeight": "bold",
+                                                   "fontSize": "13px",
+                                                   "marginBottom": "6px"}),
+        html.Div([
+            html.Div([
+                html.Label("Easting (m)"),
+                dcc.Input(id="conv-easting", type="number", placeholder="e.g. 717000",
+                          debounce=True,
+                          style={"width": "100%", "padding": "4px"}),
+            ], style={"flex": "1", "marginRight": "6px"}),
+            html.Div([
+                html.Label("Northing (m)"),
+                dcc.Input(id="conv-northing", type="number", placeholder="e.g. 3545000",
+                          debounce=True,
+                          style={"width": "100%", "padding": "4px"}),
+            ], style={"flex": "1"}),
+        ], style={"display": "flex", "marginBottom": "6px"}),
+        html.Div([
+            html.Div([
+                html.Label("Zone"),
+                dcc.Input(id="conv-zone", type="number", placeholder="36",
+                          debounce=True, min=1, max=60, step=1,
+                          style={"width": "100%", "padding": "4px"}),
+            ], style={"flex": "1", "marginRight": "6px"}),
+            html.Div([
+                html.Label("Hemisphere"),
+                dcc.Dropdown(id="conv-hemisphere",
+                             options=[{"label": "N", "value": "N"},
+                                      {"label": "S", "value": "S"}],
+                             value="N", clearable=False,
+                             style={"fontSize": "13px"}),
+            ], style={"flex": "1"}),
+        ], style={"display": "flex", "marginBottom": "8px"}),
+        html.Button("Convert →", id="btn-utm-to-ll", n_clicks=0,
+                    style={"width": "100%", "padding": "6px",
+                           "backgroundColor": "#5f6368", "color": "white",
+                           "border": "none", "borderRadius": "4px", "cursor": "pointer",
+                           "marginBottom": "6px"}),
+        html.Div(id="conv-utm-to-ll-result",
+                 style={"fontSize": "12px", "minHeight": "18px",
+                        "fontFamily": "monospace", "wordBreak": "break-all"}),
 
     ], style={"padding": "20px", "width": "320px", "flexShrink": 0,
               "fontFamily": "sans-serif", "backgroundColor": "#f8f9fa",
