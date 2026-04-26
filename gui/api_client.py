@@ -82,8 +82,8 @@ class RadarApiClient:
         except Exception: pass
         return None
 
-    def set_radar(self, lat_deg: float, lon_deg: float, alt_msl_m: float) -> dict:
-        payload = {"lat_deg": lat_deg, "lon_deg": lon_deg, "alt_msl_m": alt_msl_m}
+    def set_radar(self, lat_deg: float, lon_deg: float, agl_m: float) -> dict:
+        payload = {"lat_deg": lat_deg, "lon_deg": lon_deg, "agl_m": agl_m}
         r = requests.post(f"{self._base}/radar", json=payload, timeout=120, verify=False)
         if r.status_code == 200: return r.json()
         raise RuntimeError(r.text)

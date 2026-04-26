@@ -25,7 +25,7 @@ def layout(online_mode: bool = False) -> html.Div:
                   debounce=True,
                   style={"width": "100%", "marginBottom": "8px", "padding": "4px"}),
 
-        html.Label("Altitude MSL (m)"),
+        html.Label("Height above ground (m)"),
         dcc.Input(id="input-alt-msl", type="number", value=0,
                   debounce=True, step=1,
                   style={"width": "100%", "marginBottom": "10px", "padding": "4px"}),

@@ -13,11 +13,10 @@ int32_t QueryHandler::lut_cells_pool_[MAX_LUT_RANGES * MAX_LUT_AZIMUTHS];
 QueryHandler::QueryHandler(double max_range_m, const std::string& tiles_dir)
     : max_range_m_(max_range_m), tiles_dir_(tiles_dir) {}
 
-bool QueryHandler::setRadar(double lat_deg, double lon_deg, double alt_msl_m)
+bool QueryHandler::setRadar(double lat_deg, double lon_deg, double agl_m)
 {
-    radar_ = { lat_deg, lon_deg, alt_msl_m };
-
-    LutExporter exporter(radar_, max_range_m_, tiles_dir_, LutExporter::AltMode::MSL);
+    LLA radar_agl { lat_deg, lon_deg, agl_m };
+    LutExporter exporter(radar_agl, max_range_m_, tiles_dir_, LutExporter::AltMode::AGL);
     if (exporter.tilesLoaded() == 0) {
         radar_set_ = false;
         return false;
@@ -28,6 +27,7 @@ bool QueryHandler::setRadar(double lat_deg, double lon_deg, double alt_msl_m)
     lut_az_count_         = data.az_count;
     lut_range_count_      = data.range_count;
     radar_ground_elev_m_  = exporter.radarTerrainM();
+    radar_                = { lat_deg, lon_deg, radar_ground_elev_m_ + agl_m };
     radar_set_            = true;
     return true;
 }

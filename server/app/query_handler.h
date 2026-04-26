@@ -48,7 +48,7 @@ public:
      * Triggers a LutExporter run to build a static grid around the radar.
      * @return false if no DEM tiles could be found for the given position.
      */
-    bool setRadar(double lat_deg, double lon_deg, double alt_msl_m);
+    bool setRadar(double lat_deg, double lon_deg, double agl_m);
 
     /**
      * Computes target coordinates and altitudes for a specific measurement.

@@ -54,9 +54,9 @@ void RadarServer::start()
             res.set_content(R"({"error":"bad request: invalid JSON"})", "application/json");
             return;
         }
-        if (!body.contains("lat_deg") || !body.contains("lon_deg") || !body.contains("alt_msl_m")) {
+        if (!body.contains("lat_deg") || !body.contains("lon_deg") || !body.contains("agl_m")) {
             res.status = 400;
-            res.set_content(R"({"error":"bad request: required fields: lat_deg, lon_deg, alt_msl_m"})",
+            res.set_content(R"({"error":"bad request: required fields: lat_deg, lon_deg, agl_m"})",
                             "application/json");
             return;
         }
@@ -64,7 +64,7 @@ void RadarServer::start()
         try {
             lat = body.at("lat_deg").get<double>();
             lon = body.at("lon_deg").get<double>();
-            alt = body.at("alt_msl_m").get<double>();
+            alt = body.at("agl_m").get<double>();
         } catch (...) {
             res.status = 400;
             res.set_content(R"({"error":"bad request: fields must be numbers"})", "application/json");

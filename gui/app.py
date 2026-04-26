@@ -136,7 +136,8 @@ def main():
             radar = client.set_radar(lat_f, lon_f, float(alt))
             global _lut, _lut_meta
             _lut, _lut_meta = client.get_lut()
-            msg   = f"Radar set: {lat_f:.6f}°, {lon_f:.6f}°, {float(alt):.1f} m MSL"
+            alt_msl = radar.get("alt_m", float(alt))
+            msg   = f"Radar set: {lat_f:.6f}°, {lon_f:.6f}°, AGL {float(alt):.1f} m → MSL {alt_msl:.1f} m"
             style = {"color": "green", "fontSize": "12px"}
             return radar, msg, style, [], 0
         except RuntimeError as e:
