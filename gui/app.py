@@ -5,6 +5,12 @@ Run:
     python gui/app.py [--server http://localhost:8080] [--tiles map_tiles/israel.mbtiles]
 """
 
+"""
+Main Radar GUI Application (Dash).
+Coordinates the Tile Server, API Client, and UI components.
+Implements the core event loop via Dash callbacks for real-time target querying.
+"""
+
 import argparse
 import os
 import sqlite3

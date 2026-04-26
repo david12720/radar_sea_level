@@ -9,6 +9,7 @@ MAX_RANGE_M = 50000
 
 
 def layout(online_mode: bool = False) -> html.Div:
+    """Constructs the sidebar control panel with forms for Radar, Target, and Coordinate Conversion."""
     return html.Div([
 
         # ── Radar position ────────────────────────────────────────────────────

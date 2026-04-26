@@ -76,7 +76,7 @@ def _radar_popup(r: dict) -> html.Div:
 
 
 def build_radar_layer(radar: dict) -> list:
-    """Returns [marker, circle] for the radar-layer LayerGroup."""
+    """Creates the map marker and max-range coverage circle for the radar source."""
     if not radar:
         return []
     lat = radar["lat_deg"]
@@ -107,6 +107,7 @@ def build_radar_layer(radar: dict) -> list:
 
 
 def layout(initial_radar: dict, tile_url: str, max_native_zoom: int = 16) -> html.Div:
+    """Initializes the Dash-Leaflet map container with base tiles and elevation overlay bar."""
     center = ([initial_radar["lat_deg"], initial_radar["lon_deg"]]
               if initial_radar else DEFAULT_CENTER)
 
@@ -151,6 +152,7 @@ def layout(initial_radar: dict, tile_url: str, max_native_zoom: int = 16) -> htm
 
 
 def build_target_markers(targets: list[dict]) -> list:
+    """Converts the target query results into color-coded CircleMarkers on the map."""
     markers = []
     for t in targets:
         color = _agl_color(t["agl_m"])

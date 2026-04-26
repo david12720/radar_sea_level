@@ -31,31 +31,53 @@ struct LutMetadata {
     double   range_step_m;
 };
 
-// Pure domain logic: RadarQuery → TargetResult.
-// On setRadar(), builds a ground-elevation LUT from DEM and releases tiles.
-// Subsequent handle() calls use caller-supplied ground_elevation_m (from the LUT).
+/**
+ * Pure domain logic: RadarQuery → TargetResult.
+ *
+ * This class coordinates the radar measurement processing. On setRadar(), it builds
+ * a high-density ground-elevation Look-Up Table (LUT) from the DEM and then releases
+ * the heavy DEM tiles. This enables subsequent handle() calls to perform target
+ * calculations with O(1) terrain lookup complexity and zero heap allocations.
+ */
 class QueryHandler {
 public:
     QueryHandler(double max_range_m, const std::string& tiles_dir);
 
-    // Loads DEM, builds ground-elevation LUT, releases DEM, caches LUT.
-    // Returns false if no tiles could be loaded.
+    /**
+     * Sets the radar source position (MSL) and initializes the elevation map.
+     * Triggers a LutExporter run to build a static grid around the radar.
+     * @return false if no DEM tiles could be found for the given position.
+     */
     bool setRadar(double lat_deg, double lon_deg, double alt_msl_m);
 
-    // Validates query, computes target geometry using q.ground_elevation_m.
-    // Throws RadarNotSetError, ValidationError.
+    /**
+     * Computes target coordinates and altitudes for a specific measurement.
+     * Performs range/azimuth validation and utilizes the pre-built LUT.
+     * @throws RadarNotSetError if called before successful setRadar().
+     * @throws ValidationError if measurement parameters are out of range.
+     */
     TargetResult handle(const RadarQuery& q) const;
 
-    // Per-request DEM load: loads the single tile covering (lat,lon), returns elevation, releases.
+    /**
+     * Point-query for terrain elevation.
+     * Dynamically loads the specific 1° tile, samples it, and clears memory.
+     * Used primarily for map-click inspection, not for high-speed tracking.
+     */
     double getElevation(double lat_deg, double lon_deg);
 
+    // Getters for current state and LUT data
     bool        radarSet()          const { return radar_set_; }
     const LLA&  radar()             const { return radar_; }
     double      maxRange()          const { return max_range_m_; }
     double      radarGroundElev()   const { return radar_ground_elev_m_; }
 
+    /** Returns pointer to the static 14.4M-cell elevation grid. */
     const int32_t* lutCells()    const { return lut_cells_pool_; }
+
+    /** Returns total number of cells currently populated in the LUT. */
     size_t         lutCellsSize() const { return static_cast<size_t>(lut_az_count_) * lut_range_count_; }
+
+    /** Returns resolution and dimension metadata for the current LUT. */
     LutMetadata    lutMetadata() const;
 
 private:

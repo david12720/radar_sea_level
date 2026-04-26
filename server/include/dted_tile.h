@@ -3,26 +3,29 @@
 #include <string>
 #include <cstdint>
 
-// One 1°×1° DTED2 or SRTM tile stored column-major [lon_col][lat_row].
-// col 0 = west edge, row 0 = south edge.
+/**
+ * One 1°×1° terrain tile stored in a flat 1D array.
+ * Logic: column-major [lon_col][lat_row]. West edge is col 0, South edge is row 0.
+ */
 class DtedTile {
 public:
-    int    origin_lat;    // SW corner integer latitude  (e.g. 31 for N31)
-    int    origin_lon;    // SW corner integer longitude (e.g. 34 for E034)
-    int    cols;          // longitude posts: 3601 (SRTM1) or 1201 (SRTM3)
-    int    rows;          // latitude posts:  3601 (SRTM1) or 1201 (SRTM3)
-    double post_spacing;  // degrees between adjacent posts
+    int    origin_lat;    // SW corner integer latitude
+    int    origin_lon;    // SW corner integer longitude
+    int    cols;          // Samples per line (3601 for SRTM1, 1201 for SRTM3)
+    int    rows;          // Samples per column
+    double post_spacing;  // Degrees between adjacent samples
 
+    /** Raw elevation data in decimeters or meters. Static size for zero-allocation. */
     int16_t elevation[SRTM1_COLS * SRTM1_ROWS]; 
 
     DtedTile();
 
-    // Load DTED Level-2 (.dt2) — 3601×3601, big-endian int16, 3428-byte header
+    /** Loads .dt2 (big-endian with 3428-byte header). */
     void loadDTED2(const std::string& filepath);
 
-    // Load SRTM HGT — auto-detects SRTM1 vs SRTM3 from file size
+    /** Loads .hgt (raw big-endian, size-detected). */
     void loadSRTM(const std::string& filepath);
 
-    // Clamped post lookup; returns 0 for void (-32768) cells
+    /** Safe sample lookup; converts -32768 (void) to 0m. */
     double postElevation(int col, int row) const;
 };

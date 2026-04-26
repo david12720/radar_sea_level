@@ -1,6 +1,6 @@
 """
 Serves map tiles from a local MBTiles file (SQLite) over HTTP.
-Runs as a background thread — import and call start().
+Provides a local XYZ endpoint for the Leaflet map component.
 """
 
 import sqlite3
@@ -15,6 +15,7 @@ _local = threading.local()   # per-thread SQLite connection
 
 
 def _free_port(preferred: int = 8081) -> int:
+    """Finds an available local port for the Flask server."""
     for port in range(preferred, preferred + 20):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             if s.connect_ex(("127.0.0.1", port)) != 0:
@@ -23,12 +24,14 @@ def _free_port(preferred: int = 8081) -> int:
 
 
 def _conn() -> sqlite3.Connection:
+    """Returns a thread-local SQLite connection to the MBTiles file."""
     if not hasattr(_local, "con") or _local.con is None:
         _local.con = sqlite3.connect(_db_path, check_same_thread=False)
     return _local.con
 
 
 def _get_tile(z: int, x: int, y: int) -> bytes | None:
+    """Fetches raw PNG data from SQLite. Converts XYZ indices to TMS."""
     # MBTiles row index is TMS (origin bottom-left); Leaflet uses XYZ (origin top-left)
     tms_y = (1 << z) - 1 - y
     try:
@@ -44,6 +47,7 @@ def _get_tile(z: int, x: int, y: int) -> bytes | None:
 
 @_app.route("/tiles/<int:z>/<int:x>/<int:y>.png")
 def serve_tile(z: int, x: int, y: int):
+    """HTTP endpoint for Leaflet tile requests."""
     data = _get_tile(z, x, y)
     if data is None:
         abort(404)
@@ -56,6 +60,7 @@ def health():
 
 
 def start(mbtiles_path: str, host: str = "127.0.0.1") -> str:
+    """Starts the Flask server in a background thread. Returns the tile URL template."""
     global _db_path
     _db_path = os.path.abspath(mbtiles_path)   # resolve once, always absolute
     port = _free_port()
