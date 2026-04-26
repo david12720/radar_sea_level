@@ -11,11 +11,9 @@ RANGE_CIRCLE_COLOR = "#1a73e8"
 DEFAULT_CENTER     = [32.08, 34.76]
 
 
-def _agl_color(agl_m: float) -> str:
-    if agl_m < 50:    return "red"
-    if agl_m < 300:   return "orange"
-    if agl_m < 1000:  return "yellow"
-    return "green"
+def _target_color(rel_el_deg: float) -> str:
+    """Air target (>1.0°) = blue; Ground/Masked (<=1.0°) = red."""
+    return "blue" if rel_el_deg > 1.0 else "red"
 
 
 def _target_popup(t: dict) -> html.Div:
@@ -155,7 +153,7 @@ def build_target_markers(targets: list[dict]) -> list:
     """Converts the target query results into color-coded CircleMarkers on the map."""
     markers = []
     for t in targets:
-        color = _agl_color(t["agl_m"])
+        color = _target_color(t.get("relative_elev_deg", 0.0))
         markers.append(
             dl.CircleMarker(
                 center=[t["lat_deg"], t["lon_deg"]],
