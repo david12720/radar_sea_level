@@ -74,12 +74,15 @@ def layout(online_mode: bool = False) -> html.Div:
         html.Div([
             dcc.Checklist(
                 id="chk-open-elevation",
-                options=[{"label": " Use Open Elevation API", "value": "on"}],
+                options=[{
+                    "label": " Use Open Elevation API",
+                    "value": "on",
+                    "disabled": not online_mode,
+                }],
                 value=[],
                 style={"fontSize": "13px",
                        "color": "#333" if online_mode else "#aaa"},
                 inputStyle={"cursor": "pointer" if online_mode else "not-allowed"},
-                **({"disabled": True} if not online_mode else {}),
             ),
             html.Span(
                 "● Online" if online_mode else "● Offline",

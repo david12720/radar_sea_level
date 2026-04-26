@@ -3,9 +3,14 @@ REM Launches all radar_sea_level services in separate windows.
 REM Each service can be closed independently with Ctrl-C in its window.
 
 setlocal
-set ROOT=%~dp0
-set SERVER=%ROOT%server
-set GUI=%ROOT%gui
+
+REM ── Mount the script's location to a local drive letter if it's a UNC path.
+REM     pushd auto-assigns a temporary drive (e.g. Z:) for \\wsl$\... or other shares.
+pushd "%~dp0"
+
+set ROOT=%CD%
+set SERVER=%ROOT%\server
+set GUI=%ROOT%\gui
 set BUILD=%SERVER%\build\Release
 
 REM ── Ports ────────────────────────────────────────────────────────────────
@@ -22,6 +27,7 @@ REM ── Sanity checks ──────────────────�
 if not exist "%BUILD%\radar_server.exe" (
     echo [run_all] ERROR: %BUILD%\radar_server.exe not found.
     echo           Build the solution in Release ^| x64 first.
+    popd
     pause
     exit /b 1
 )
@@ -36,14 +42,16 @@ echo   target_server  port %TARGET_PORT%
 echo   gui            http://127.0.0.1:8050   server http://127.0.0.1:%RADAR_PORT%
 echo.
 
-start "radar_server"  cmd /k "cd /d "%SERVER%" && "%BUILD%\radar_server.exe"  --port %RADAR_PORT%  --tiles "%TILES%"  --max-range %MAX_RANGE%"
-start "lut_server"    cmd /k "cd /d "%SERVER%" && "%BUILD%\lut_server.exe"    --port %LUT_PORT%    --tiles "%TILES%""
-start "target_server" cmd /k "cd /d "%SERVER%" && "%BUILD%\target_server.exe" --port %TARGET_PORT%"
+start "radar_server"  /D "%SERVER%" cmd /k ""%BUILD%\radar_server.exe"  --port %RADAR_PORT%  --tiles "%TILES%"  --max-range %MAX_RANGE%"
+start "lut_server"    /D "%SERVER%" cmd /k ""%BUILD%\lut_server.exe"    --port %LUT_PORT%    --tiles "%TILES%""
+start "target_server" /D "%SERVER%" cmd /k ""%BUILD%\target_server.exe" --port %TARGET_PORT%"
 
 REM Give the radar server a moment to bind its port before the GUI tries to talk to it.
 timeout /t 2 /nobreak > nul
 
-start "gui" cmd /k "cd /d "%GUI%" && python app.py --server http://127.0.0.1:%RADAR_PORT% --tiles "%MBTILES%""
+start "gui" /D "%GUI%" cmd /k "python app.py --server http://127.0.0.1:%RADAR_PORT% --tiles "%MBTILES%""
 
 echo [run_all] All services launched. Close each window to stop that service.
+
+popd
 endlocal
