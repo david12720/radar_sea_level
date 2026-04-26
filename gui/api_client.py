@@ -10,14 +10,19 @@ OPEN_METEO_URL     = "https://api.open-meteo.com/v1/elevation"
 
 
 def ping_open_elevation(timeout: float = 3.0) -> bool:
-    """Returns True if the Open Elevation API is reachable."""
+    """Returns True if the Open Elevation API is reachable. Skips SSL verification."""
     try:
+        # verify=False skips SSL certificate validation (common issue with local proxies/certs)
         r = requests.post(OPEN_ELEVATION_URL,
                           json={"locations": [{"latitude": 0, "longitude": 0}]},
-                          timeout=timeout)
+                          timeout=timeout,
+                          verify=False)
         if r.status_code == 200:
             return True
         print(f"[gui] Open Elevation ping failed with status {r.status_code}: {r.text[:100]}")
+        return False
+    except requests.exceptions.SSLError as e:
+        print(f"[gui] Open Elevation SSL Error (even with verify=False): {e}")
         return False
     except requests.exceptions.Timeout:
         print("[gui] Open Elevation ping failed: Connection timed out")
