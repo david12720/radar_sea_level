@@ -8,6 +8,7 @@ Run:
 import argparse
 import os
 import sqlite3
+import struct
 import sys
 import time
 from dash import Dash, Input, Output, State, callback, dcc, html, no_update
@@ -17,6 +18,23 @@ import tile_server as ts
 import api_client as ac
 import controls
 import map_view
+
+_lut: bytes = None
+_lut_meta: dict = None
+_online_mode: bool = False
+
+
+def _lookup_ground_elev(range_m: float, azimuth_deg: float) -> float:
+    if _lut is None or _lut_meta is None:
+        return 0.0
+    az_count    = _lut_meta["az_count"]
+    range_count = _lut_meta["range_count"]
+    az_step     = _lut_meta["az_step_deg"]
+    rng_step    = _lut_meta["range_step_m"]
+    az_idx      = int(round(azimuth_deg / az_step)) % az_count
+    rng_idx     = min(int(round(range_m / rng_step)), range_count - 1)
+    offset      = (az_idx * range_count + rng_idx) * 4
+    return float(struct.unpack_from("<i", _lut, offset)[0])
 
 _GUI_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -34,6 +52,7 @@ def parse_args():
 
 
 def main():
+    global _lut, _lut_meta, _online_mode
     args = parse_args()
 
     # ── Tile server ───────────────────────────────────────────────────────────
@@ -50,8 +69,8 @@ def main():
     print(f"[gui] Radar server ({args.server}): {'OK' if server_ok else 'UNREACHABLE'}")
 
     print("[gui] Checking Open Elevation API connectivity...")
-    online_mode = ac.ping_open_elevation()
-    print(f"[gui] Open Elevation API: {'ONLINE' if online_mode else 'OFFLINE (checkbox disabled)'}")
+    _online_mode = ac.ping_open_elevation()
+    print(f"[gui] Open Elevation API: {'ONLINE' if _online_mode else 'OFFLINE (checkbox disabled)'}")
 
     # ── Dash app ──────────────────────────────────────────────────────────────
     app = Dash(__name__, suppress_callback_exceptions=True)
@@ -72,11 +91,17 @@ def main():
     except RuntimeError:
         initial_radar = None  # server running but radar not set yet
 
+    if initial_radar is not None:
+        try:
+            _lut, _lut_meta = client.get_lut()
+        except Exception as e:
+            print(f"[gui] Could not load LUT at startup: {e}")
+
     app.layout = html.Div([
         dcc.Store(id="radar-store",   data=initial_radar),
         dcc.Store(id="targets-store", data=[]),
         dcc.Store(id="target-counter", data=0),
-        controls.layout(online_mode),
+        controls.layout(_online_mode),
         map_view.layout(initial_radar, tile_url, max_native_zoom),
     ], style={"display": "flex", "height": "100vh", "overflow": "hidden"})
 
@@ -103,6 +128,8 @@ def main():
             return no_update, "Latitude and longitude must be valid numbers.", {"color": "red", "fontSize": "12px"}, no_update, no_update
         try:
             radar = client.set_radar(lat_f, lon_f, float(alt))
+            global _lut, _lut_meta
+            _lut, _lut_meta = client.get_lut()
             msg   = f"Radar set: {lat_f:.6f}°, {lon_f:.6f}°, {float(alt):.1f} m MSL"
             style = {"color": "green", "fontSize": "12px"}
             return radar, msg, style, [], 0
@@ -135,27 +162,33 @@ def main():
     )
     def handle_buttons(add_clicks, clear_clicks, range_m, azimuth, elevation,
                        use_open_elev, earth_model, targets, counter):
+        global _lut, _lut_meta, _online_mode
         from dash import ctx
         if ctx.triggered_id == "btn-clear":
             return [], 0, ""
 
+        if _lut is None:
+            return no_update, no_update, "Set radar position first to load elevation map."
+
+        ground_elev = _lookup_ground_elev(range_m, azimuth)
         try:
-            result = client.query(range_m, azimuth, elevation, earth_model=earth_model)
+            result = client.query(range_m, azimuth, elevation, ground_elev, earth_model=earth_model)
         except RuntimeError as e:
             return no_update, no_update, str(e)
 
-        if online_mode and use_open_elev:
+        if _online_mode and use_open_elev:
             lat_t, lon_t = result["lat_deg"], result["lon_deg"]
-            try:
-                result["open_elevation_m"] = ac.get_open_elevation(lat_t, lon_t)
-            except Exception as e:
-                print(f"[gui] Open-Elevation failed: {e}")
-                result["open_elevation_m"] = None
-            try:
-                result["open_meteo_elevation_m"] = ac.get_open_meteo_elevation(lat_t, lon_t)
-            except Exception as e:
-                print(f"[gui] Open-Meteo failed: {e}")
-                result["open_meteo_elevation_m"] = None
+            from concurrent.futures import ThreadPoolExecutor
+
+            # Use new 3s timeouts for all to keep UI snappy
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                f_meteo = executor.submit(ac.get_open_meteo_elevation, lat_t, lon_t)
+                f_elev  = executor.submit(ac.get_open_elevation, lat_t, lon_t)
+                f_topo  = executor.submit(ac.get_open_topo_elevation, lat_t, lon_t)
+                
+                result["open_meteo_elevation_m"] = f_meteo.result()
+                result["open_elevation_m"]       = f_elev.result()
+                result["open_topo_elevation_m"]  = f_topo.result()
 
         counter += 1
         result["id"]            = counter

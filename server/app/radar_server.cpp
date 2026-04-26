@@ -3,6 +3,7 @@
 #include "earth_model.h"
 #include "vendor/httplib.h"
 #include "vendor/json.hpp"
+#include <cstring>
 #include <iostream>
 
 using json = nlohmann::json;
@@ -18,6 +19,7 @@ void RadarServer::start()
         res.set_content(R"({"status":"ok"})", "application/json");
     });
 
+    // ── GET /radar ────────────────────────────────────────────────────────────
     svr.Get("/radar", [this](const httplib::Request&, httplib::Response& res) {
         if (!handler_.radarSet()) {
             res.status = 404;
@@ -25,8 +27,9 @@ void RadarServer::start()
                             "application/json");
             return;
         }
-        const LLA& r = handler_.radar();
-        double ground_elev = handler_.getElevation(r.lat_deg, r.lon_deg);
+        const LLA& r      = handler_.radar();
+        double ground_elev = handler_.radarGroundElev();
+        LutMetadata meta   = handler_.lutMetadata();
         json out;
         out["lat_deg"]       = r.lat_deg;
         out["lon_deg"]       = r.lon_deg;
@@ -34,9 +37,14 @@ void RadarServer::start()
         out["ground_elev_m"] = ground_elev;
         out["agl_m"]         = r.alt_m - ground_elev;
         out["max_range_m"]   = handler_.maxRange();
+        out["lut"]["az_count"]    = meta.az_count;
+        out["lut"]["range_count"] = meta.range_count;
+        out["lut"]["az_step_deg"] = meta.az_step_deg;
+        out["lut"]["range_step_m"]= meta.range_step_m;
         res.set_content(out.dump(), "application/json");
     });
 
+    // ── POST /radar ───────────────────────────────────────────────────────────
     svr.Post("/radar", [this](const httplib::Request& req, httplib::Response& res) {
         json body;
         try {
@@ -69,8 +77,9 @@ void RadarServer::start()
                             "application/json");
             return;
         }
-        const LLA& r = handler_.radar();
-        double ground_elev = handler_.getElevation(r.lat_deg, r.lon_deg);
+        const LLA& r       = handler_.radar();
+        double ground_elev  = handler_.radarGroundElev();
+        LutMetadata meta    = handler_.lutMetadata();
         json out;
         out["lat_deg"]       = r.lat_deg;
         out["lon_deg"]       = r.lon_deg;
@@ -78,9 +87,39 @@ void RadarServer::start()
         out["ground_elev_m"] = ground_elev;
         out["agl_m"]         = r.alt_m - ground_elev;
         out["max_range_m"]   = handler_.maxRange();
+        out["lut"]["az_count"]     = meta.az_count;
+        out["lut"]["range_count"]  = meta.range_count;
+        out["lut"]["az_step_deg"]  = meta.az_step_deg;
+        out["lut"]["range_step_m"] = meta.range_step_m;
         res.set_content(out.dump(), "application/json");
     });
 
+    // ── GET /lut ──────────────────────────────────────────────────────────────
+    // Returns raw binary: uint32 az_count, uint32 range_count, int32[az*range]
+    // Layout: cells[az_idx * range_count + range_idx], little-endian.
+    svr.Get("/lut", [this](const httplib::Request&, httplib::Response& res) {
+        if (!handler_.radarSet()) {
+            res.status = 404;
+            res.set_content(R"({"error":"radar not set — call POST /radar first"})",
+                            "application/json");
+            return;
+        }
+        const auto& cells = handler_.lutCells();
+        LutMetadata meta  = handler_.lutMetadata();
+
+        size_t body_size = 2 * sizeof(uint32_t) + cells.size() * sizeof(int32_t);
+        std::string body(body_size, '\0');
+
+        uint32_t az    = meta.az_count;
+        uint32_t range = meta.range_count;
+        std::memcpy(body.data(),     &az,          sizeof(az));
+        std::memcpy(body.data() + 4, &range,       sizeof(range));
+        std::memcpy(body.data() + 8, cells.data(), cells.size() * sizeof(int32_t));
+
+        res.set_content(body, "application/octet-stream");
+    });
+
+    // ── GET /elevation ────────────────────────────────────────────────────────
     svr.Get("/elevation", [this](const httplib::Request& req, httplib::Response& res) {
         if (!req.has_param("lat") || !req.has_param("lon")) {
             res.status = 400;
@@ -98,6 +137,7 @@ void RadarServer::start()
         }
     });
 
+    // ── POST /query ───────────────────────────────────────────────────────────
     svr.Post("/query", [this](const httplib::Request& req, httplib::Response& res) {
         json body;
         try {
@@ -108,17 +148,20 @@ void RadarServer::start()
             return;
         }
 
-        if (!body.contains("range_m") || !body.contains("azimuth_deg") || !body.contains("elevation_deg")) {
+        if (!body.contains("range_m") || !body.contains("azimuth_deg") ||
+            !body.contains("elevation_deg") || !body.contains("ground_elevation_m")) {
             res.status = 400;
-            res.set_content(R"({"error":"bad request: missing required fields"})", "application/json");
+            res.set_content(R"({"error":"bad request: required fields: range_m, azimuth_deg, elevation_deg, ground_elevation_m"})",
+                            "application/json");
             return;
         }
 
         RadarQuery q;
         try {
-            q.range_m       = body.at("range_m").get<double>();
-            q.azimuth_deg   = body.at("azimuth_deg").get<double>();
-            q.elevation_deg = body.at("elevation_deg").get<double>();
+            q.range_m            = body.at("range_m").get<double>();
+            q.azimuth_deg        = body.at("azimuth_deg").get<double>();
+            q.elevation_deg      = body.at("elevation_deg").get<double>();
+            q.ground_elevation_m = body.at("ground_elevation_m").get<double>();
             if (body.contains("earth_model"))
                 q.earth_model = body.at("earth_model").get<std::string>();
         } catch (...) {
@@ -128,20 +171,7 @@ void RadarServer::start()
         }
 
         try {
-            TargetResult r;
-            if (body.contains("ground_elevation_m")) {
-                // Client holds a height map — use provided value, skip DEM lookup.
-                if (!handler_.radarSet())
-                    throw RadarNotSetError("radar position not set");
-                double ground_elev = body.at("ground_elevation_m").get<double>();
-                RadarMeasurement meas { q.range_m, q.azimuth_deg, q.elevation_deg };
-                auto model = makeEarthModel(q.earth_model);
-                r = computeTargetSeaLevel(handler_.radar(), meas, ground_elev, *model);
-                double elev_to_gnd = elevationToGround(handler_.radar(), r.horizontal_range_m, ground_elev);
-                r.relative_elevation_deg = relativeElevation(q.elevation_deg, elev_to_gnd);
-            } else {
-                r = handler_.handle(q);
-            }
+            TargetResult r = handler_.handle(q);
             json out;
             out["lat_deg"]           = r.position.lat_deg;
             out["lon_deg"]           = r.position.lon_deg;
@@ -170,6 +200,7 @@ void RadarServer::start()
         }
     });
 
+    // ── POST /convert ─────────────────────────────────────────────────────────
     svr.Post("/convert", [](const httplib::Request& req, httplib::Response& res) {
         json body;
         try { body = json::parse(req.body); }

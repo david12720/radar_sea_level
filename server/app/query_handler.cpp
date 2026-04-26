@@ -1,7 +1,9 @@
 #include "query_handler.h"
+#include "lut_exporter.h"
 #include "radar_compute.h"
 #include "relative_angle.h"
 #include "earth_model.h"
+#include <cmath>
 #include <sstream>
 
 QueryHandler::QueryHandler(double max_range_m, const std::string& tiles_dir)
@@ -10,18 +12,39 @@ QueryHandler::QueryHandler(double max_range_m, const std::string& tiles_dir)
 bool QueryHandler::setRadar(double lat_deg, double lon_deg, double alt_msl_m)
 {
     radar_ = { lat_deg, lon_deg, alt_msl_m };
-    int loaded = dem_.loadTilesAround(radar_, max_range_m_, tiles_dir_, DemDatabase::Format::SRTM);
-    radar_set_ = (loaded > 0);
-    return radar_set_;
+
+    LutExporter exporter(radar_, max_range_m_, tiles_dir_, LutExporter::AltMode::MSL);
+    if (exporter.tilesLoaded() == 0) {
+        radar_set_ = false;
+        return false;
+    }
+
+    LutExportData data    = exporter.exportData();
+    lut_cells_.assign(data.cells, data.cells + data.total_cells);
+    lut_az_count_         = data.az_count;
+    lut_range_count_      = data.range_count;
+    radar_ground_elev_m_  = exporter.radarTerrainM();
+    radar_set_            = true;
+    return true;
 }
 
-double QueryHandler::getElevation(double lat_deg, double lon_deg) const
+double QueryHandler::getElevation(double lat_deg, double lon_deg)
 {
+    int tile_lat = static_cast<int>(std::floor(lat_deg));
+    int tile_lon = static_cast<int>(std::floor(lon_deg));
+    std::string fpath = tiles_dir_ + DemDatabase::srtmFilename(tile_lat, tile_lon);
+    double elev = 0.0;
     try {
-        return dem_.getElevation(lat_deg, lon_deg);
-    } catch (...) {
-        return 0.0;
-    }
+        dem_.loadTile(fpath, tile_lat, tile_lon, DemDatabase::Format::SRTM);
+        elev = dem_.getElevation(lat_deg, lon_deg);
+    } catch (...) {}
+    dem_.clear();
+    return elev;
+}
+
+LutMetadata QueryHandler::lutMetadata() const
+{
+    return { lut_az_count_, lut_range_count_, lut_az_step_deg_, lut_range_step_m_ };
 }
 
 void QueryHandler::validate(const RadarQuery& q) const
@@ -45,8 +68,8 @@ TargetResult QueryHandler::handle(const RadarQuery& q) const
     RadarMeasurement meas { q.range_m, q.azimuth_deg, q.elevation_deg };
     try {
         auto model = makeEarthModel(q.earth_model);
-        TargetResult r = computeTargetSeaLevel(radar_, meas, dem_, *model);
-        double elev_to_gnd = elevationToGround(radar_, r.horizontal_range_m, r.ground_elevation_m);
+        TargetResult r = computeTargetSeaLevel(radar_, meas, q.ground_elevation_m, *model);
+        double elev_to_gnd = elevationToGround(radar_, r.horizontal_range_m, q.ground_elevation_m);
         r.relative_elevation_deg = relativeElevation(q.elevation_deg, elev_to_gnd);
         return r;
     } catch (const std::invalid_argument& e) {

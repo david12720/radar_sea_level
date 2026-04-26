@@ -91,6 +91,7 @@
   <!-- Source files -->
   <ItemGroup>
     <ClCompile Include="main_server.cpp" />
+    <ClCompile Include="app\lut_exporter.cpp" />
     <ClCompile Include="app\query_handler.cpp" />
     <ClCompile Include="app\radar_server.cpp" />
     <ClCompile Include="src\coord_convert.cpp" />
@@ -113,6 +114,7 @@
     <ClInclude Include="include\elevation_lut.h" />
     <ClInclude Include="include\radar_compute.h" />
     <ClInclude Include="include\relative_angle.h" />
+    <ClInclude Include="app\lut_exporter.h" />
     <ClInclude Include="app\query_handler.h" />
     <ClInclude Include="app\radar_server.h" />
   </ItemGroup>

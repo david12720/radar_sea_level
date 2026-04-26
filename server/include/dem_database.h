@@ -24,6 +24,8 @@ public:
 
     bool hasTile(double lat_deg, double lon_deg) const;
 
+    void clear() { num_tiles_ = 0; }
+
     // "e034n31.dt2"
     static std::string dted2Filename(int origin_lat, int origin_lon);
 
