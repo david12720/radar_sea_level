@@ -19,9 +19,10 @@ DEFAULT_HEADERS = {
 }
 
 def ping_elevation_api(timeout: float = 3.0) -> bool:
-    """Quick check for online mode."""
+    """Quick check for online mode. Skips SSL verification."""
     try:
-        r = requests.get(OPEN_METEO_URL, params={"latitude":0,"longitude":0}, timeout=timeout)
+        r = requests.get(OPEN_METEO_URL, params={"latitude":0,"longitude":0}, 
+                         timeout=timeout, verify=False)
         return r.status_code == 200
     except Exception:
         return False
@@ -31,7 +32,7 @@ def ping_open_elevation(timeout: float = 3.0) -> bool:
     return ping_elevation_api(timeout)
 
 def get_open_elevation(lat: float, lon: float, timeout: float = 3.0) -> float:
-    """Returns terrain elevation MSL (m) from Open-Elevation. 3s timeout to keep GUI snappy."""
+    """Returns terrain elevation MSL (m) from Open-Elevation. Skips SSL verification."""
     try:
         payload = {"locations": [{"latitude": lat, "longitude": lon}]}
         r = requests.post(OPEN_ELEVATION_URL, json=payload, timeout=timeout, verify=False)
@@ -42,7 +43,7 @@ def get_open_elevation(lat: float, lon: float, timeout: float = 3.0) -> float:
     return None
 
 def get_open_meteo_elevation(lat: float, lon: float, timeout: float = 3.0) -> float:
-    """Returns terrain elevation MSL (m) from Open-Meteo."""
+    """Returns terrain elevation MSL (m) from Open-Meteo. Skips SSL verification."""
     try:
         r = requests.get(OPEN_METEO_URL, params={"latitude": lat, "longitude": lon},
                          timeout=timeout, verify=False, headers=DEFAULT_HEADERS)
@@ -53,7 +54,7 @@ def get_open_meteo_elevation(lat: float, lon: float, timeout: float = 3.0) -> fl
     return None
 
 def get_open_topo_elevation(lat: float, lon: float, timeout: float = 3.0) -> float:
-    """Returns terrain elevation MSL (m) from Open-Topo."""
+    """Returns terrain elevation MSL (m) from Open-Topo. Skips SSL verification."""
     try:
         r = requests.get(OPEN_TOPO_URL, params={"locations": f"{lat},{lon}"},
                          timeout=timeout, verify=False, headers=DEFAULT_HEADERS)
@@ -69,49 +70,49 @@ class RadarApiClient:
 
     def health(self) -> bool:
         try:
-            r = requests.get(f"{self._base}/health", timeout=2)
+            r = requests.get(f"{self._base}/health", timeout=2, verify=False)
             return r.status_code == 200
         except requests.RequestException:
             return False
 
     def radar_info(self) -> dict:
         try:
-            r = requests.get(f"{self._base}/radar", timeout=2)
+            r = requests.get(f"{self._base}/radar", timeout=2, verify=False)
             if r.status_code == 200: return r.json()
         except Exception: pass
         return None
 
     def set_radar(self, lat_deg: float, lon_deg: float, alt_msl_m: float) -> dict:
         payload = {"lat_deg": lat_deg, "lon_deg": lon_deg, "alt_msl_m": alt_msl_m}
-        r = requests.post(f"{self._base}/radar", json=payload, timeout=120)
+        r = requests.post(f"{self._base}/radar", json=payload, timeout=120, verify=False)
         if r.status_code == 200: return r.json()
         raise RuntimeError(r.text)
 
     def get_lut(self) -> tuple:
-        r = requests.get(f"{self._base}/lut", timeout=60)
+        r = requests.get(f"{self._base}/lut", timeout=60, verify=False)
         if r.status_code != 200: raise RuntimeError(r.text)
         data = r.content
         az_count, range_count = struct.unpack_from("<II", data, 0)
         return data[8:], {"az_count": int(az_count), "range_count": int(range_count), "az_step_deg": 0.1, "range_step_m": 15.0}
 
     def get_elevation(self, lat_deg: float, lon_deg: float) -> float:
-        r = requests.get(f"{self._base}/elevation", params={"lat": lat_deg, "lon": lon_deg}, timeout=3)
+        r = requests.get(f"{self._base}/elevation", params={"lat": lat_deg, "lon": lon_deg}, timeout=3, verify=False)
         if r.status_code == 200: return r.json()["elev_m"]
         return 0.0
 
     def convert_ll_to_utm(self, lat_deg: float, lon_deg: float) -> dict:
-        r = requests.post(f"{self._base}/convert", json={"direction": "ll_to_utm", "lat_deg": lat_deg, "lon_deg": lon_deg}, timeout=5)
+        r = requests.post(f"{self._base}/convert", json={"direction": "ll_to_utm", "lat_deg": lat_deg, "lon_deg": lon_deg}, timeout=5, verify=False)
         if r.status_code == 200: return r.json()
         raise RuntimeError(r.text)
 
     def convert_utm_to_ll(self, easting: float, northing: float, zone: int, hemisphere: str) -> dict:
-        r = requests.post(f"{self._base}/convert", json={"direction": "utm_to_ll", "easting": easting, "northing": northing, "zone": zone, "hemisphere": hemisphere}, timeout=5)
+        r = requests.post(f"{self._base}/convert", json={"direction": "utm_to_ll", "easting": easting, "northing": northing, "zone": zone, "hemisphere": hemisphere}, timeout=5, verify=False)
         if r.status_code == 200: return r.json()
         raise RuntimeError(r.text)
 
     def query(self, range_m: float, azimuth_deg: float, elevation_deg: float, ground_elevation_m: float, earth_model: str = None) -> dict:
         payload = {"range_m": range_m, "azimuth_deg": azimuth_deg, "elevation_deg": elevation_deg, "ground_elevation_m": ground_elevation_m}
         if earth_model: payload["earth_model"] = earth_model
-        r = requests.post(f"{self._base}/query", json=payload, timeout=5)
+        r = requests.post(f"{self._base}/query", json=payload, timeout=5, verify=False)
         if r.status_code == 200: return r.json()
         raise RuntimeError(r.text)
