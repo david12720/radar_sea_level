@@ -10,9 +10,13 @@
 #include <algorithm>
 #include <iomanip>
 
-// Static buffer sized for maximum possible LUT dimensions (matching server/app/lut_exporter.h)
-#define MAX_LUT_AZIMUTHS 3600
-#define MAX_LUT_RANGES   4000 // Covers up to 60km at 15m steps
+// Static buffer sized for maximum possible LUT dimensions
+#ifndef MAX_LUT_AZIMUTHS
+    #define MAX_LUT_AZIMUTHS 3600
+#endif
+#ifndef MAX_LUT_RANGES
+    #define MAX_LUT_RANGES   4000 // Covers up to 60km at 15m steps
+#endif
 
 class PolarLut {
 public:
