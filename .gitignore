@@ -26,6 +26,10 @@ lut_output*.bin
 *.vcxproj.user
 UpgradeLog.htm
 
+# VS build output
+poc/bin/
+poc/obj/
+
 # Python
 __pycache__/
 *.pyc
