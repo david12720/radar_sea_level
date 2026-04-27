@@ -111,6 +111,24 @@ int main()
            center_col, center_row,
            elevation[center_col * DTED2_ROWS + center_row]);
 
+    // --- Point lookup ---
+    static constexpr double QUERY_LAT = 31.8589944;
+    static constexpr double QUERY_LON = 34.9180298;
+
+    double frac_col = (QUERY_LON - origin_lon) * (DTED2_COLS - 1);
+    double frac_row = (QUERY_LAT - origin_lat) * (DTED2_ROWS - 1);
+    int col = static_cast<int>(frac_col);
+    int row = static_cast<int>(frac_row);
+
+    if (col < 0 || col >= DTED2_COLS || row < 0 || row >= DTED2_ROWS) {
+        fprintf(stderr, "Query point (%.7f, %.7f) is outside this tile\n", QUERY_LAT, QUERY_LON);
+    } else {
+        int16_t v = elevation[col * DTED2_ROWS + row];
+        double elev = (v == -32768) ? 0.0 : static_cast<double>(v);
+        printf("Query        : lat=%.7f  lon=%.7f\n", QUERY_LAT, QUERY_LON);
+        printf("Nearest post : col=%d  row=%d  elev=%.0f m ASL\n", col, row, elev);
+    }
+
     printf("OK\n");
     return 0;
 }
