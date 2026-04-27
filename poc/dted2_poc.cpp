@@ -22,21 +22,33 @@ static constexpr int RECORD_FOOTER = 4; // checksum
 // 3601x3601x2 = ~26 MB — global to avoid stack overflow.
 static int16_t elevation[DTED2_COLS * DTED2_ROWS];
 
-// Parses DDDMMSSH (lon, len=8) or DDMMSSH (lat, len=7) from UHL.
+// Parses a DTED UHL coordinate field (8 bytes, zero-padded DDDMMSSH + possible trailing space).
+// Scans for the hemisphere letter rather than assuming its position.
 static double parse_coord(const char* s, int len)
 {
-    char hemi = s[len - 1];
-    int coord_len = len - 1;
+    char hemi = ' ';
+    int digit_end = 0;
+    for (int i = 0; i < len; ++i) {
+        if (s[i] == 'N' || s[i] == 'S' || s[i] == 'E' || s[i] == 'W') {
+            hemi = s[i];
+            digit_end = i;
+            break;
+        }
+    }
+
     int deg, min, sec;
-    if (coord_len == 7) {
+    if (digit_end == 7) {
+        // DDDMMSS (longitude or zero-padded latitude)
         deg = (s[0]-'0')*100 + (s[1]-'0')*10 + (s[2]-'0');
         min = (s[3]-'0')*10  + (s[4]-'0');
         sec = (s[5]-'0')*10  + (s[6]-'0');
     } else {
+        // DDMMSS
         deg = (s[0]-'0')*10  + (s[1]-'0');
         min = (s[2]-'0')*10  + (s[3]-'0');
         sec = (s[4]-'0')*10  + (s[5]-'0');
     }
+
     double v = deg + min / 60.0 + sec / 3600.0;
     return (hemi == 'S' || hemi == 'W') ? -v : v;
 }
@@ -56,7 +68,7 @@ int main()
     // Bytes 47-50: num longitude lines (cols) as 4-char ASCII
     // Bytes 51-54: num latitude  points (rows) as 4-char ASCII
     double origin_lon = parse_coord(uhl + 4,  8);
-    double origin_lat = parse_coord(uhl + 12, 7);
+    double origin_lat = parse_coord(uhl + 12, 8);
 
     char cols_str[5] = {}, rows_str[5] = {};
     memcpy(cols_str, uhl + 47, 4);
