@@ -10,6 +10,10 @@
 #include <algorithm>
 #include <iomanip>
 
+// Static buffer sized for maximum possible LUT dimensions (matching server/app/lut_exporter.h)
+#define MAX_LUT_AZIMUTHS 3600
+#define MAX_LUT_RANGES   4000 // Covers up to 60km at 15m steps
+
 class PolarLut {
 public:
     const uint32_t AZ_COUNT = 3600;      // 0.1 deg steps
@@ -18,7 +22,13 @@ public:
 
     bool load(const std::string& path, double max_range) {
         range_count_ = static_cast<uint32_t>(std::ceil(max_range / RNG_STEP)) + 1;
-        size_t expected_size = static_cast<size_t>(AZ_COUNT) * range_count_ * sizeof(int32_t);
+        size_t total_cells = static_cast<size_t>(AZ_COUNT) * range_count_;
+        size_t expected_size = total_cells * sizeof(int32_t);
+
+        if (total_cells > MAX_LUT_AZIMUTHS * MAX_LUT_RANGES) {
+            std::cerr << "Error: Request exceeds static buffer capacity.\n";
+            return false;
+        }
 
         std::ifstream f(path, std::ios::binary | std::ios::ate);
         if (!f) {
@@ -32,12 +42,10 @@ public:
         }
 
         f.seekg(0, std::ios::beg);
-        data_.resize(AZ_COUNT * range_count_);
-        return (bool)f.read(reinterpret_cast<char*>(data_.data()), expected_size);
+        return (bool)f.read(reinterpret_cast<char*>(results_buffer_), expected_size);
     }
 
     int32_t getElevation(double az_deg, double rng_m) const {
-        if (data_.empty()) return 0;
         double az = std::fmod(az_deg, 360.0);
         if (az < 0) az += 360.0;
 
@@ -45,13 +53,16 @@ public:
         uint32_t ri = static_cast<uint32_t>(std::round(rng_m / RNG_STEP));
         ri = std::min(ri, range_count_ - 1);
 
-        return data_[ai * range_count_ + ri];
+        return results_buffer_[ai * range_count_ + ri];
     }
 
 private:
-    std::vector<int32_t> data_;
-    uint32_t             range_count_ = 0;
+    uint32_t range_count_ = 0;
+    static int32_t results_buffer_[MAX_LUT_AZIMUTHS * MAX_LUT_RANGES];
 };
+
+// Allocate the static buffer in global memory
+int32_t PolarLut::results_buffer_[MAX_LUT_AZIMUTHS * MAX_LUT_RANGES];
 
 int main(int argc, char* argv[]) {
     if (argc < 5) {
