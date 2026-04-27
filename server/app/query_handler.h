@@ -41,7 +41,8 @@ struct LutMetadata {
  */
 class QueryHandler {
 public:
-    QueryHandler(double max_range_m, const std::string& tiles_dir);
+    QueryHandler(double max_range_m, const std::string& tiles_dir,
+                 DemDatabase::Format fmt = DemDatabase::Format::SRTM);
 
     /**
      * Sets the radar source position (MSL) and initializes the elevation map.
@@ -81,8 +82,9 @@ public:
     LutMetadata    lutMetadata() const;
 
 private:
-    double      max_range_m_;
-    std::string tiles_dir_;
+    double               max_range_m_;
+    std::string          tiles_dir_;
+    DemDatabase::Format  dem_fmt_;
     LLA         radar_ {};
     bool        radar_set_            = false;
     double      radar_ground_elev_m_  = 0.0;

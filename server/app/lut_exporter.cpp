@@ -9,11 +9,11 @@
 int32_t LutExporter::results_buffer_[MAX_LUT_RANGES * MAX_LUT_AZIMUTHS];
 
 LutExporter::LutExporter(const LLA& radar, double max_range_m, const std::string& tiles_dir,
-                         AltMode alt_mode)
-    : radar_(radar), max_range_m_(max_range_m)
+                         AltMode alt_mode, DemDatabase::Format fmt)
+    : radar_(radar), max_range_m_(max_range_m), dem_fmt_(fmt)
 {
     auto t0 = std::chrono::steady_clock::now();
-    tiles_loaded_ = dem_.loadTilesAround(radar_, max_range_m, tiles_dir, DemDatabase::Format::SRTM);
+    tiles_loaded_ = dem_.loadTilesAround(radar_, max_range_m, tiles_dir, dem_fmt_);
     auto t1 = std::chrono::steady_clock::now();
     std::cout << "[lut_export] Tiles loaded: " << tiles_loaded_ << " from " << tiles_dir
               << "  (" << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << " ms)\n";

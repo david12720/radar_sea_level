@@ -17,7 +17,7 @@ void DtedTile::loadDTED2(const std::string& filepath)
     post_spacing = SRTM1_POST_SPACING;
 
     static constexpr int HEADER_SIZE   = 3428;
-    static constexpr int RECORD_HEADER = 4;
+    static constexpr int RECORD_HEADER = 8;
     static constexpr int RECORD_FOOTER = 4;
 
     elevation[0] = 0; // Just to avoid unused warning or similar if needed

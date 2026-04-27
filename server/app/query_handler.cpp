@@ -10,13 +10,14 @@
 
 int32_t QueryHandler::lut_cells_pool_[MAX_LUT_RANGES * MAX_LUT_AZIMUTHS];
 
-QueryHandler::QueryHandler(double max_range_m, const std::string& tiles_dir)
-    : max_range_m_(max_range_m), tiles_dir_(tiles_dir) {}
+QueryHandler::QueryHandler(double max_range_m, const std::string& tiles_dir,
+                           DemDatabase::Format fmt)
+    : max_range_m_(max_range_m), tiles_dir_(tiles_dir), dem_fmt_(fmt) {}
 
 bool QueryHandler::setRadar(double lat_deg, double lon_deg, double agl_m)
 {
     LLA radar_agl { lat_deg, lon_deg, agl_m };
-    LutExporter exporter(radar_agl, max_range_m_, tiles_dir_, LutExporter::AltMode::AGL);
+    LutExporter exporter(radar_agl, max_range_m_, tiles_dir_, LutExporter::AltMode::AGL, dem_fmt_);
     if (exporter.tilesLoaded() == 0) {
         radar_set_ = false;
         return false;
@@ -36,10 +37,12 @@ double QueryHandler::getElevation(double lat_deg, double lon_deg)
 {
     int tile_lat = static_cast<int>(std::floor(lat_deg));
     int tile_lon = static_cast<int>(std::floor(lon_deg));
-    std::string fpath = tiles_dir_ + DemDatabase::srtmFilename(tile_lat, tile_lon);
+    std::string fname = (dem_fmt_ == DemDatabase::Format::DTED2)
+                      ? DemDatabase::dted2Filename(tile_lat, tile_lon)
+                      : DemDatabase::srtmFilename(tile_lat, tile_lon);
     double elev = 0.0;
     try {
-        dem_.loadTile(fpath, tile_lat, tile_lon, DemDatabase::Format::SRTM);
+        dem_.loadTile(tiles_dir_ + fname, tile_lat, tile_lon, dem_fmt_);
         elev = dem_.getElevation(lat_deg, lon_deg);
     } catch (...) {}
     dem_.clear();

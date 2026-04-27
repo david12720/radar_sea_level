@@ -6,8 +6,8 @@
 static void usage(const char* prog)
 {
     std::cerr << "Usage: " << prog
-              << " [--port <n>] [--tiles <dir>] [--max-range <m>]\n"
-              << "Defaults: port=8080 tiles=./tiles/ max-range=50000\n"
+              << " [--port <n>] [--tiles <dir>] [--max-range <m>] [--dem-format hgt|dted]\n"
+              << "Defaults: port=8080 tiles=./tiles/ max-range=50000 dem-format=hgt\n"
               << "\nSet radar position at runtime via:  POST /radar\n"
               << "  Body: {\"lat_deg\":<deg>, \"lon_deg\":<deg>, \"alt_msl_m\":<m>}\n";
 }
@@ -17,25 +17,32 @@ int main(int argc, char* argv[])
     int port = 8080;
     std::string tiles_dir = "./tiles/";
     double max_range_m = 50000.0;
+    DemDatabase::Format dem_fmt = DemDatabase::Format::SRTM;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--help" || arg == "-h") { usage(argv[0]); return 0; }
         if (i + 1 >= argc) { std::cerr << "Missing value for " << arg << "\n"; return 1; }
         std::string val = argv[++i];
-        if      (arg == "--port")      port         = std::stoi(val);
-        else if (arg == "--tiles")     tiles_dir    = val;
-        else if (arg == "--max-range") max_range_m  = std::stod(val);
+        if      (arg == "--port")       port        = std::stoi(val);
+        else if (arg == "--tiles")      tiles_dir   = val;
+        else if (arg == "--max-range")  max_range_m = std::stod(val);
+        else if (arg == "--dem-format") {
+            if      (val == "dted") dem_fmt = DemDatabase::Format::DTED2;
+            else if (val == "hgt")  dem_fmt = DemDatabase::Format::SRTM;
+            else { std::cerr << "Unknown dem-format: " << val << " (use hgt or dted)\n"; return 1; }
+        }
         else { std::cerr << "Unknown argument: " << arg << "\n"; usage(argv[0]); return 1; }
     }
 
-    std::cout << "[server] Max range: " << max_range_m << " m\n"
-              << "[server] Tiles dir: " << tiles_dir << "\n"
-              << "[server] Port:      " << port << "\n"
+    std::cout << "[server] Max range:  " << max_range_m << " m\n"
+              << "[server] Tiles dir:  " << tiles_dir << "\n"
+              << "[server] DEM format: " << (dem_fmt == DemDatabase::Format::DTED2 ? "dted" : "hgt") << "\n"
+              << "[server] Port:       " << port << "\n"
               << "[server] Waiting for radar position via POST /radar\n";
     std::cout.flush();
 
-    QueryHandler handler(max_range_m, tiles_dir);
+    QueryHandler handler(max_range_m, tiles_dir, dem_fmt);
     RadarServer server(handler, port);
     server.start();
     return 0;

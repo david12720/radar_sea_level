@@ -105,11 +105,12 @@ bool DemDatabase::hasTile(double lat_deg, double lon_deg) const
 std::string DemDatabase::dted2Filename(int origin_lat, int origin_lon)
 {
     std::ostringstream oss;
-    oss << (origin_lon >= 0 ? 'e' : 'w')
+    oss << (origin_lon >= 0 ? 'E' : 'W')
         << std::setfill('0') << std::setw(3) << std::abs(origin_lon)
-        << (origin_lat >= 0 ? 'n' : 's')
+        << '/'
+        << (origin_lat >= 0 ? 'N' : 'S')
         << std::setfill('0') << std::setw(2) << std::abs(origin_lat)
-        << ".dt2";
+        << ".DT2";
     return oss.str();
 }
 
