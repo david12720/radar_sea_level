@@ -17,6 +17,7 @@ gui/map_tiles/map_tiles/
 radar_server
 radar_sea_level
 server/lut_server
+server/test_query_handler
 server/tests/test_query_handler
 lut_output*.bin
 
@@ -32,3 +33,4 @@ __pycache__/
 
 # IDE/Tool specific
 .claude/
+*.bin
