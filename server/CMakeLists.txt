@@ -55,3 +55,9 @@ add_executable(test_query_handler
 )
 target_include_directories(test_query_handler PRIVATE include app)
 target_link_libraries(test_query_handler PRIVATE ${PLATFORM_LIBS})
+
+# ── LUT TCP Client ────────────────────────────────────────────────────────────
+add_executable(test_lut_client
+    test_lut_client.cpp
+)
+target_link_libraries(test_lut_client PRIVATE ${PLATFORM_LIBS})
