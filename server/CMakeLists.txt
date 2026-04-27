@@ -61,3 +61,8 @@ add_executable(test_lut_client
     test_lut_client.cpp
 )
 target_link_libraries(test_lut_client PRIVATE ${PLATFORM_LIBS})
+
+# ── LUT Offline Reader ────────────────────────────────────────────────────────
+add_executable(read_lut
+    read_lut.cpp
+)

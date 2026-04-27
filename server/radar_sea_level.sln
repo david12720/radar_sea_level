@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lut_server", "lut_server.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "target_server", "target_server.vcxproj", "{4C5D6E7F-8A9B-0C1D-2E3F-4A5B6C7D8E9F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "read_lut", "read_lut.vcxproj", "{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -27,5 +29,9 @@ Global
 		{4C5D6E7F-8A9B-0C1D-2E3F-4A5B6C7D8E9F}.Debug|x64.Build.0 = Debug|x64
 		{4C5D6E7F-8A9B-0C1D-2E3F-4A5B6C7D8E9F}.Release|x64.ActiveCfg = Release|x64
 		{4C5D6E7F-8A9B-0C1D-2E3F-4A5B6C7D8E9F}.Release|x64.Build.0 = Release|x64
+		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}.Debug|x64.ActiveCfg = Debug|x64
+		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}.Debug|x64.Build.0 = Debug|x64
+		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}.Release|x64.ActiveCfg = Release|x64
+		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 EndGlobal
