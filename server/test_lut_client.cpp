@@ -117,7 +117,18 @@ int main(int argc, char* argv[]) {
             std::vector<int32_t> cells(total_cells);
             
             std::cout << "Receiving " << total_cells << " cells (" << (total_cells * 4.0 / 1024 / 1024) << " MB) ...\n";
-            if (recv_all(sock, (char*)cells.data(), total_cells * 4)) {
+            
+            bool success = true;
+            for (size_t i = 0; i < total_cells; ++i) {
+                int32_t height_mtr;
+                if (!recv_all(sock, (char*)&height_mtr, sizeof(int32_t))) {
+                    success = false;
+                    break;
+                }
+                cells[i] = height_mtr;
+            }
+
+            if (success) {
                 std::cout << "\n── Spot checks ─────────────────────────────────────────────\n";
                 auto check = [&](int ai, int ri, const char* label) {
                     if (ai < (int)az_count && ri < (int)range_count) {

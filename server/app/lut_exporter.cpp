@@ -30,7 +30,8 @@ LutExporter::LutExporter(const LLA& radar, double max_range_m, const std::string
 LutExportData LutExporter::exportData() const
 {
     const uint32_t az_count    = static_cast<uint32_t>(std::round(360.0 / az_step_deg_));
-    const uint32_t range_count = static_cast<uint32_t>(std::ceil(max_range_m_ / range_step_m_)) + 1;
+    // Changed: exact count without +1 (e.g., 15000 / 15 = 1000)
+    const uint32_t range_count = static_cast<uint32_t>(std::floor(max_range_m_ / range_step_m_));
 
     if (static_cast<size_t>(az_count) * range_count > MAX_LUT_RANGES * MAX_LUT_AZIMUTHS) {
         throw std::runtime_error("Export grid exceeds static buffer size");
@@ -58,7 +59,6 @@ LutExportData LutExporter::exportData() const
 
     auto t1 = std::chrono::steady_clock::now();
 
-    // timing code simplified or removed if preferred, keeping for now
     std::cout << "[lut_export] Grid build: "
               << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << " ms"
               << "  cells=" << az_count << "x" << range_count << "\n";
@@ -72,6 +72,10 @@ void LutExporter::saveToFile(const LutExportData& data, const std::string& path)
     std::ofstream f(path, std::ios::binary);
     if (!f)
         throw std::runtime_error("cannot open output file: " + path);
-    f.write(reinterpret_cast<const char*>(data.cells),
-            static_cast<std::streamsize>(data.total_cells * sizeof(int32_t)));
+
+    // Using the requested per-integer write style
+    for (size_t i = 0; i < data.total_cells; ++i) {
+        int32_t height_mtr = data.cells[i];
+        f.write(reinterpret_cast<const char*>(&height_mtr), sizeof(int32_t));
+    }
 }

@@ -10,7 +10,8 @@ void ElevationLUT::build(const LLA& radar, const DemDatabase& dem, const LutConf
 {
     cfg_          = cfg;
     radar_        = radar;
-    num_ranges_   = static_cast<int>(std::ceil(cfg.max_range_m / cfg.range_step_m)) + 1;
+    // Changed: exact count without +1 (e.g., 15000 / 15 = 1000)
+    num_ranges_   = static_cast<int>(std::floor(cfg.max_range_m / cfg.range_step_m));
     num_azimuths_ = static_cast<int>(std::round(360.0 / cfg.az_step_deg));
 
     if (num_ranges_ > MAX_LUT_RANGES || num_azimuths_ > MAX_LUT_AZIMUTHS) {

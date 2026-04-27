@@ -9,10 +9,10 @@ import numpy as np
 def load_lut(path, max_range_m):
     AZ_COUNT = 3600
     RNG_STEP = 15.0
-    range_count = int(np.ceil(max_range_m / RNG_STEP)) + 1
+    # Changed: exact count without +1 (e.g., 15000 / 15 = 1000)
+    range_count = int(np.floor(max_range_m / RNG_STEP))
     
     # Read raw int32 data and reshape to 2D grid
-    # Data is Little-Endian 4-byte integers ('<i4')
     data = np.fromfile(path, dtype='<i4').reshape((AZ_COUNT, range_count))
     return data
 

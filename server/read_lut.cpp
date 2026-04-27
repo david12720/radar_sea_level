@@ -21,7 +21,8 @@ public:
     const double   RNG_STEP = 15.0;      // 15 m steps
 
     bool load(const std::string& path, double max_range) {
-        range_count_ = static_cast<uint32_t>(std::ceil(max_range / RNG_STEP)) + 1;
+        // Changed: exact count without +1 (e.g., 15000 / 15 = 1000)
+        range_count_ = static_cast<uint32_t>(std::floor(max_range / RNG_STEP));
         size_t total_cells = static_cast<size_t>(AZ_COUNT) * range_count_;
         size_t expected_size = total_cells * sizeof(int32_t);
 
@@ -30,19 +31,22 @@ public:
             return false;
         }
 
-        std::ifstream f(path, std::ios::binary | std::ios::ate);
+        std::ifstream f(path, std::ios::binary);
         if (!f) {
             std::cerr << "Error: Could not open file " << path << "\n";
             return false;
         }
 
-        if (static_cast<size_t>(f.tellg()) != expected_size) {
-            std::cerr << "Error: File size mismatch. Expected " << expected_size << " bytes.\n";
-            return false;
+        // Using the requested binary read style
+        for (size_t i = 0; i < total_cells; ++i) {
+            int32_t height_mtr;
+            if (!f.read(reinterpret_cast<char*>(&height_mtr), sizeof(int32_t))) {
+                std::cerr << "Error: Premature end of file.\n";
+                return false;
+            }
+            results_buffer_[i] = height_mtr;
         }
-
-        f.seekg(0, std::ios::beg);
-        return (bool)f.read(reinterpret_cast<char*>(results_buffer_), expected_size);
+        return true;
     }
 
     int32_t getElevation(double az_deg, double rng_m) const {
