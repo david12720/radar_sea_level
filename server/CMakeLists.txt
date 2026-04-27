@@ -30,22 +30,15 @@ set(CORE_SOURCES
     src/relative_angle.cpp
 )
 
-# ── Demo binary ───────────────────────────────────────────────────────────────
-add_executable(radar_sea_level
-    main.cpp
-    ${CORE_SOURCES}
-)
-target_include_directories(radar_sea_level PRIVATE include)
-
-# ── HTTP server binary ────────────────────────────────────────────────────────
-add_executable(radar_server
-    main_server.cpp
+# ── HTTP radar server binary ──────────────────────────────────────────────────
+add_executable(radar_http_server
+    main_http_server.cpp
     app/query_handler.cpp
     app/radar_server.cpp
     ${CORE_SOURCES}
 )
-target_include_directories(radar_server PRIVATE include app)
-target_link_libraries(radar_server PRIVATE ${PLATFORM_LIBS})
+target_include_directories(radar_http_server PRIVATE include app)
+target_link_libraries(radar_http_server PRIVATE ${PLATFORM_LIBS})
 
 # ── Unit tests ────────────────────────────────────────────────────────────────
 add_executable(test_query_handler

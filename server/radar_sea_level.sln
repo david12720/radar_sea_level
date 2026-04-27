@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "radar_server", "radar_server.vcxproj", "{2A3B4C5D-6E7F-8A9B-0C1D-2E3F4A5B6C7D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "radar_http_server", "radar_http_server.vcxproj", "{2A3B4C5D-6E7F-8A9B-0C1D-2E3F4A5B6C7D}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lut_server", "lut_server.vcxproj", "{3B4C5D6E-7F8A-9B0C-1D2E-3F4A5B6C7D8E}"
 EndProject
