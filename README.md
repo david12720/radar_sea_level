@@ -360,7 +360,7 @@ RadarMeasurement meas { 8000.0, 45.0, -0.5 }; // range (m), azimuth (deg), eleva
 TargetResult res = computeTargetSeaLevel(radar, meas, lut);
 
 // res.position.alt_m       — target altitude MSL
-// res.ground_elevation_m   — terrain height at target lat/lon
+// res.terrain_msl_m   — terrain height at target lat/lon
 // res.target_height_agl_m  — target height above ground
 ```
 
@@ -370,7 +370,7 @@ TargetResult res = computeTargetSeaLevel(radar, meas, lut);
 POST /radar
 { "lat_deg": 32.08, "lon_deg": 34.76, "agl_m": 10 }
 → 200 { "lat_deg": ..., "lon_deg": ..., "alt_m": <MSL computed from DEM + agl>,
-         "ground_elev_m": ..., "agl_m": ..., "max_range_m": ...,
+         "terrain_msl_m": ..., "agl_m": ..., "max_range_m": ...,
          "lut": { "az_count": ..., "range_count": ..., "az_step_deg": ..., "range_step_m": ... } }
 
 GET /lut
@@ -379,10 +379,10 @@ GET /lut
 
 POST /query
 { "range_m": 8000, "azimuth_deg": 45.0, "elevation_deg": -0.5,
-  "ground_elevation_m": <from LUT lookup>,
+  "terrain_msl_m": <from LUT lookup>,
   "earth_model": "flat" | "sphere" | "k43"   (optional; default "flat") }
 → 200 { "lat_deg": ..., "lon_deg": ..., "alt_msl_m": ...,
-         "ground_elev_m": ..., "agl_m": ..., "horiz_range_m": ...,
+         "terrain_msl_m": ..., "agl_m": ..., "horiz_range_m": ...,
          "relative_elev_deg": ..., "earth_model": "flat" }
 → 400 { "error": "validation failed: ..." }
 → 422 { "error": "no DEM coverage at target location" }
@@ -458,6 +458,6 @@ These are expected, not bugs. Use `k43` if you care about AGL accuracy at long r
 |-------|-------------|
 | `position.lat_deg / lon_deg` | Target geographic position |
 | `position.alt_m` | Target altitude above mean sea level |
-| `ground_elevation_m` | Terrain height MSL at target location (from DEM) |
+| `terrain_msl_m` | Terrain height MSL at target location (from DEM) |
 | `target_height_agl_m` | Target altitude minus ground elevation |
 | `horizontal_range_m` | Ground-projected range from radar |

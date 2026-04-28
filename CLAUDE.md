@@ -2,10 +2,10 @@
 
 ## What This Project Does
 
-Computes **ground elevation (MSL)** beneath a radar target and the target's **height above ground level (AGL)**.
+Computes **terrain elevation (MSL)** beneath a radar target and the target's **height above ground level (AGL)**.
 
 Input: radar position (LLA) + measurement (slant range, azimuth, elevation angle)  
-Output: target lat/lon, altitude MSL, ground elevation MSL, AGL
+Output: target lat/lon, altitude MSL, terrain MSL, AGL
 
 Also provides **UTM ↔ lat/lon coordinate conversion** (WGS84, zone auto-detected from longitude).
 
@@ -85,10 +85,10 @@ All endpoints return `application/json`.
 | Method | Endpoint    | Purpose                                       |
 |--------|-------------|-----------------------------------------------|
 | GET    | `/health`   | Liveness: `{"status":"ok"}`                  |
-| GET    | `/radar`    | Get current radar pos + ground_elev, agl, max_range_m |
-| POST   | `/radar`    | Set radar: `{lat_deg, lon_deg, alt_msl_m}` → same as GET |
+| GET    | `/radar`    | Get current radar pos + terrain_msl, agl, max_range_m |
+| POST   | `/radar`    | Set radar: `{lat_deg, lon_deg, agl_m}` → same as GET |
 | GET    | `/elevation`| Terrain elevation: `?lat=X&lon=Y` → `{elev_m}` |
-| POST   | `/query`    | Target query: `{range_m, azimuth_deg, elevation_deg, [ground_elevation_m]}` → `{lat_deg, lon_deg, alt_msl_m, ground_elev_m, agl_m, horiz_range_m, relative_elev_deg}` |
+| POST   | `/query`    | Target query: `{range_m, azimuth_deg, elevation_deg, terrain_msl_m}` → `{lat_deg, lon_deg, alt_msl_m, terrain_msl_m, agl_m, horiz_range_m, relative_elev_deg}` |
 | POST   | `/convert`  | Coord conversion: `{direction, ...}` — see below |
 
 **`/convert` request body:**

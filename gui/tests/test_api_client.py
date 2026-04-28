@@ -25,7 +25,7 @@ def test_health(client):
     assert client.health() is True
 
 
-def test_sea_target_ground_elev_zero(client):
+def test_sea_target_terrain_msl_zero(client):
     r = client.query(range_m=1000, azimuth_deg=270, elevation_deg=0, terrain_msl_m=0.0)
     assert abs(r["terrain_msl_m"]) < 2.0, f"expected ~0, got {r['terrain_msl_m']}"
 
@@ -36,7 +36,7 @@ def test_result_keys_present(client):
         assert key in r, f"missing key: {key}"
 
 
-def test_agl_equals_alt_minus_ground(client):
+def test_agl_equals_alt_minus_terrain(client):
     r = client.query(range_m=2000, azimuth_deg=45, elevation_deg=2, terrain_msl_m=50.0)
     assert abs(r["agl_m"] - (r["alt_msl_m"] - r["terrain_msl_m"])) < 0.01
 

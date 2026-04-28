@@ -62,7 +62,7 @@ Server is the single source of truth for validation. Dash sliders set UX bounds 
 
 | Condition | HTTP | Response body |
 |-----------|------|---------------|
-| Happy path | 200 | `{ lat_deg, lon_deg, alt_msl_m, ground_elev_m, agl_m, horiz_range_m }` |
+| Happy path | 200 | `{ lat_deg, lon_deg, alt_msl_m, terrain_msl_m, agl_m, horiz_range_m }` |
 | Missing / wrong-type JSON fields | 400 | `{ "error": "bad request: <detail>" }` |
 | Out-of-range input (range, azimuth, elevation) | 400 | `{ "error": "validation failed: <field> <reason>" }` |
 | Target lat/lon outside loaded tile coverage | 422 | `{ "error": "no DEM coverage at target location" }` |
@@ -88,7 +88,7 @@ Server-side validation bounds:
   "lat_deg": 32.091,
   "lon_deg": 34.753,
   "alt_msl_m": 35.2,
-  "ground_elev_m": 0.0,
+  "terrain_msl_m": 0.0,
   "agl_m": 35.2,
   "horiz_range_m": 7990.1
 }

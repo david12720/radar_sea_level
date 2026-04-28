@@ -45,12 +45,12 @@ int main()
         return 1;
     }
 
-    // ── Test 1: sea target, expect ground elevation = 0 m ────────────────────
+    // ── Test 1: sea target, expect terrain elevation = 0 m ────────────────────
     {
         TargetResult r = handler.handle({ 1000.0, 270.0, 0.0 });
-        ASSERT_NEAR(r.terrain_msl_m, 0.0, 2.0, "sea target ground elev ~0");
+        ASSERT_NEAR(r.terrain_msl_m, 0.0, 2.0, "sea target terrain MSL ~0");
         ASSERT_NEAR(r.position.alt_m, 10.0, 0.1, "sea target alt = radar alt (0 elev angle)");
-        ASSERT_NEAR(r.target_height_agl_m, 10.0, 2.0, "sea target AGL = radar alt - ground");
+        ASSERT_NEAR(r.target_height_agl_m, 10.0, 2.0, "sea target AGL = radar alt - terrain");
         ASSERT_NEAR(r.horizontal_range_m, 1000.0, 0.5, "sea target horiz range = slant range");
     }
 
@@ -60,7 +60,7 @@ int main()
         double expected_alt = 10.0 + 1000.0 * std::sin(2.0 * M_PI / 180.0);
         ASSERT_NEAR(r.position.alt_m, expected_alt, 0.5, "elevated target alt MSL");
         ASSERT_NEAR(r.target_height_agl_m, r.position.alt_m - r.terrain_msl_m, 0.01,
-                    "AGL = alt_msl - ground_elev");
+                    "AGL = alt_msl - terrain_msl");
     }
 
     // ── Test 3: validation — range out of bounds ──────────────────────────────

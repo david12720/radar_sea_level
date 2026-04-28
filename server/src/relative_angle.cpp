@@ -3,7 +3,7 @@
 #include <cmath>
 
 // Elevation angle (deg) from the radar to the ground point beneath the target.
-// vert = ground_elev - radar_alt: negative when the terrain is below the radar,
+// vert = terrain_msl_m - radar_alt: negative when the terrain is below the radar,
 // so the returned angle will be negative (looking down to reach the ground).
 double elevationToGround(const LLA& radar,
                          double horizontal_range_m,

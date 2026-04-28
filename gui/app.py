@@ -30,7 +30,7 @@ _lut_meta: dict = None
 _online_mode: bool = False
 
 
-def _lookup_ground_elev(range_m: float, azimuth_deg: float) -> float:
+def _lookup_terrain_msl(range_m: float, azimuth_deg: float) -> float:
     if _lut is None or _lut_meta is None:
         return 0.0
     az_count    = _lut_meta["az_count"]
@@ -177,9 +177,9 @@ def main():
         if _lut is None:
             return no_update, no_update, "Set radar position first to load elevation map."
 
-        ground_elev = _lookup_ground_elev(range_m, azimuth)
+        terrain_msl = _lookup_terrain_msl(range_m, azimuth)
         try:
-            result = client.query(range_m, azimuth, elevation, ground_elev, earth_model=earth_model)
+            result = client.query(range_m, azimuth, elevation, terrain_msl, earth_model=earth_model)
         except RuntimeError as e:
             return no_update, no_update, str(e)
 

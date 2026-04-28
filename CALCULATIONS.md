@@ -242,7 +242,7 @@ for ri in [0, num_ranges):
 ri = round(horiz_range_m / range_step_m)     clamped to [0, num_ranges - 1]
 ai = round(azimuth_deg   / az_step_deg) mod num_azimuths
 
-ground_elevation = table[ri][ai]
+terrain_msl_m = table[ri][ai]
 ```
 
 **Round, not truncate:** rounding to the nearest bin halves the quantization error compared to floor.
@@ -260,7 +260,7 @@ This is distinct from the beam elevation angle, which is measured from the radar
 ### Step 1 — Elevation angle to the ground point
 
 ```
-elev_to_ground = atan2(ground_elevation_MSL - radar_alt_MSL, horiz_range)
+elev_to_ground = atan2(terrain_msl_m - radar_alt_MSL, horiz_range)
 ```
 
 ```
@@ -268,10 +268,10 @@ elev_to_ground = atan2(ground_elevation_MSL - radar_alt_MSL, horiz_range)
               /
              / elev_to_ground (negative here — ground is below radar)
             /
-           G  (ground point at target lat/lon, elevation = ground_elevation_MSL)
+           G  (ground point at target lat/lon, elevation = terrain_msl_m)
 ```
 
-`vert = ground_elevation_MSL - radar_alt_MSL` is negative when the terrain is below the radar (common: radar is elevated, terrain slopes down). `atan2` gives the signed angle naturally.
+`vert = terrain_msl_m - radar_alt_MSL` is negative when the terrain is below the radar (common: radar is elevated, terrain slopes down). `atan2` gives the signed angle naturally.
 
 ### Step 2 — Relative elevation
 
@@ -322,18 +322,18 @@ Inputs:  radar LLA  +  RadarMeasurement (range, azimuth, elevation)
                            │  DEM or LUT elevation lookup  │
                            │  tile → frac index → bicubic  │
                            └───────────────┬──────────────┘
-                                           │ ground_elevation_MSL
+                                           │ terrain_msl_m
                            ┌───────────────▼──────────────┐
-                           │  AGL = target_alt - ground    │
+                           │  AGL = target_alt - terrain   │
                            └───────────────┬──────────────┘
-                                           │ ground_elevation_MSL + horiz_range
+                                           │ terrain_msl_m, horiz_range
                            ┌───────────────▼──────────────┐
                            │  Relative elevation angle     │
                            │  atan2(Δalt, horiz) → beam-  │
                            │  terrain angular separation   │
                            └──────────────────────────────┘
 
-Outputs: target lat/lon/alt MSL, ground_elevation MSL, AGL, relative_elevation_deg
+Outputs: target lat/lon/alt MSL, terrain_msl_m, AGL, relative_elevation_deg
 ```
 
 `AGL > 0`: target is above terrain.  
