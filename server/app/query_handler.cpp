@@ -73,11 +73,18 @@ TargetResult QueryHandler::handle(const RadarQuery& q) const
     if (!radar_set_)
         throw RadarNotSetError("radar position not set — call POST /radar first");
     validate(q);
+    
+    // For range 0, we bypass the caller-provided terrain (which might be a rounded LUT value)
+    // and use the precise radar terrain height to avoid "underground" rounding errors.
+    // NOTE: You can change the 0.001 threshold or the logic here if you decide to 
+    // prioritize integer consistency over double precision in the future.
+    double terrain_msl = (q.range_m < 0.001) ? radar_terrain_msl_m_ : q.terrain_msl_m;
+
     RadarMeasurement meas { q.range_m, q.azimuth_deg, q.elevation_deg };
     try {
         const auto& model = getEarthModel(q.earth_model);
-        TargetResult r = computeTargetSeaLevel(radar_, meas, q.terrain_msl_m, model);
-        double elev_to_gnd = elevationToGround(radar_, r.horizontal_range_m, q.terrain_msl_m);
+        TargetResult r = computeTargetSeaLevel(radar_, meas, terrain_msl, model);
+        double elev_to_gnd = elevationToGround(radar_, r.horizontal_range_m, terrain_msl);
         r.relative_elevation_deg = relativeElevation(q.elevation_deg, elev_to_gnd);
         return r;
     } catch (const std::invalid_argument& e) {
