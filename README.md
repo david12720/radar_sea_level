@@ -286,8 +286,10 @@ Exports a full ground-elevation LUT for an arbitrary radar position as a raw bin
 ### Start the server
 
 ```bash
-./lut_server [--tiles ./tiles/] [--port 9000]
+./lut_server [--tiles ./tiles/] [--port 9000] [--dem-format hgt|dted]
 ```
+
+`--dem-format hgt` (default) loads SRTM `.hgt` tiles; `--dem-format dted` loads DTED Level-2 `.DT2` tiles.
 
 ### Wire protocol (binary, little-endian)
 

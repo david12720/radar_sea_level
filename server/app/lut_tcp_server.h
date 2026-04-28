@@ -1,16 +1,19 @@
 #pragma once
+#include "dem_database.h"
 #include <string>
 
 // TCP server that accepts LUT export requests and returns a raw int32[az][range] array
 // or saves it to a binary file on the server side.
 class LutTcpServer {
 public:
-    LutTcpServer(const std::string& tiles_dir, int port);
+    LutTcpServer(const std::string& tiles_dir, int port,
+                 DemDatabase::Format fmt = DemDatabase::Format::SRTM);
     void start();   // blocks until interrupted
 
 private:
-    std::string tiles_dir_;
-    int         port_;
+    std::string         tiles_dir_;
+    int                 port_;
+    DemDatabase::Format dem_fmt_;
 
 #ifdef _WIN32
     void handleClient(unsigned long long sockfd) const;

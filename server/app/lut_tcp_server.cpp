@@ -74,8 +74,9 @@ static bool sendAll(socket_t s, const void* buf, size_t len)
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-LutTcpServer::LutTcpServer(const std::string& tiles_dir, int port)
-    : tiles_dir_(tiles_dir), port_(port) {}
+LutTcpServer::LutTcpServer(const std::string& tiles_dir, int port,
+                           DemDatabase::Format fmt)
+    : tiles_dir_(tiles_dir), port_(port), dem_fmt_(fmt) {}
 
 #ifdef _WIN32
 void LutTcpServer::handleClient(unsigned long long sock) const
@@ -97,7 +98,7 @@ void LutTcpServer::handleClient(int sock) const
     LLA radar { hdr.lat_deg, hdr.lon_deg, hdr.alt_agl_m };
 
     try {
-        LutExporter   exporter(radar, hdr.max_range_m, tiles_dir_);
+        LutExporter   exporter(radar, hdr.max_range_m, tiles_dir_, LutExporter::AltMode::AGL, dem_fmt_);
         LutExportData data = exporter.exportData();
 
         if (hdr.mode == 0) {
