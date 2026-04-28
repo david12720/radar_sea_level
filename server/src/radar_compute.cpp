@@ -29,8 +29,8 @@ TargetResult computeTargetSeaLevel(const LLA& radar,
                                    const IEarthModel& model)
 {
     TargetResult res        = model.propagate(radar, meas);
-    res.ground_elevation_m  = dem.getElevation(res.position.lat_deg, res.position.lon_deg);
-    res.target_height_agl_m = res.position.alt_m - res.ground_elevation_m;
+    res.terrain_msl_m  = dem.getElevation(res.position.lat_deg, res.position.lon_deg);
+    res.target_height_agl_m = res.position.alt_m - res.terrain_msl_m;
     return res;
 }
 
@@ -40,19 +40,19 @@ TargetResult computeTargetSeaLevel(const LLA& radar,
                                    const IEarthModel& model)
 {
     TargetResult res        = model.propagate(radar, meas);
-    res.ground_elevation_m  = lut.lookup(res.horizontal_range_m, meas.azimuth_deg);
-    res.target_height_agl_m = res.position.alt_m - res.ground_elevation_m;
+    res.terrain_msl_m  = lut.lookup(res.horizontal_range_m, meas.azimuth_deg);
+    res.target_height_agl_m = res.position.alt_m - res.terrain_msl_m;
     return res;
 }
 
 TargetResult computeTargetSeaLevel(const LLA& radar,
                                    const RadarMeasurement& meas,
-                                   double ground_elevation_m,
+                                   double terrain_msl_m,
                                    const IEarthModel& model)
 {
     TargetResult res        = model.propagate(radar, meas);
-    res.ground_elevation_m  = ground_elevation_m;
-    res.target_height_agl_m = res.position.alt_m - ground_elevation_m;
+    res.terrain_msl_m  = terrain_msl_m;
+    res.target_height_agl_m = res.position.alt_m - terrain_msl_m;
     return res;
 }
 
@@ -71,7 +71,7 @@ TargetResult computeTargetSeaLevel(const LLA& radar, const RadarMeasurement& mea
 }
 
 TargetResult computeTargetSeaLevel(const LLA& radar, const RadarMeasurement& meas,
-                                   double ground_elevation_m)
+                                   double terrain_msl_m)
 {
-    return computeTargetSeaLevel(radar, meas, ground_elevation_m, flat_model());
+    return computeTargetSeaLevel(radar, meas, terrain_msl_m, flat_model());
 }

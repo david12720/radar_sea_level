@@ -11,7 +11,7 @@
 //   double  radar_alt_msl_m
 //
 // Per target (32 bytes in, 40 bytes out, repeated until disconnect):
-//   In:  double range_m, azimuth_deg, elevation_deg, ground_elevation_m
+//   In:  double range_m, azimuth_deg, elevation_deg, terrain_msl_m
 //   Out: double lat_deg, lon_deg, alt_msl_m, agl_m, relative_elev_deg
 class TargetTcpServer {
 public:

@@ -22,7 +22,7 @@ struct RadarMeasurement {
 /** Full resolved target state. */
 struct TargetResult {
     LLA    position;               // Target lat/lon/alt MSL
-    double ground_elevation_m;     // Terrain MSL directly beneath target
+    double terrain_msl_m;     // Terrain MSL directly beneath target
     double target_height_agl_m;    // Above Ground Level altitude
     double horizontal_range_m;     // Ground-projected range from radar
     double vertical_offset_m;      // vertical height gain from radar antenna

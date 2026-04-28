@@ -23,9 +23,9 @@ TargetResult computeTargetSeaLevel(const LLA& radar, const RadarMeasurement& mea
                                    const ElevationLUT& lut, const IEarthModel& model);
 
 TargetResult computeTargetSeaLevel(const LLA& radar, const RadarMeasurement& meas,
-                                   double ground_elevation_m, const IEarthModel& model);
+                                   double terrain_msl_m, const IEarthModel& model);
 
-// Backward-compatible overloads (default to Flat Earth)
+/** Same as above but assumes Flat Earth model. */
 TargetResult computeTargetSeaLevel(const LLA& radar, const RadarMeasurement& meas, const DemDatabase& dem);
 TargetResult computeTargetSeaLevel(const LLA& radar, const RadarMeasurement& meas, const ElevationLUT& lut);
-TargetResult computeTargetSeaLevel(const LLA& radar, const RadarMeasurement& meas, double ground_elevation_m);
+TargetResult computeTargetSeaLevel(const LLA& radar, const RadarMeasurement& meas, double terrain_msl_m);

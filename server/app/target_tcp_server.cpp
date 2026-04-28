@@ -33,7 +33,7 @@ struct TargetRequest {
     double range_m;
     double azimuth_deg;
     double elevation_deg;
-    double ground_elevation_m;
+    double terrain_msl_m;
 };
 
 struct TargetResponse {
@@ -85,9 +85,9 @@ void TargetTcpServer::handleClient(int sock) const
     TargetRequest req{};
     while (recvAll(sock, &req, sizeof(req))) {
         RadarMeasurement meas { req.range_m, req.azimuth_deg, req.elevation_deg };
-        TargetResult r = computeTargetSeaLevel(radar, meas, req.ground_elevation_m);
+        TargetResult r = computeTargetSeaLevel(radar, meas, req.terrain_msl_m);
 
-        double elev_to_gnd = elevationToGround(radar, r.horizontal_range_m, r.ground_elevation_m);
+        double elev_to_gnd = elevationToGround(radar, r.horizontal_range_m, req.terrain_msl_m);
         r.relative_elevation_deg = relativeElevation(req.elevation_deg, elev_to_gnd);
 
         TargetResponse resp {

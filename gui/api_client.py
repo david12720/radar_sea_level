@@ -110,8 +110,8 @@ class RadarApiClient:
         if r.status_code == 200: return r.json()
         raise RuntimeError(r.text)
 
-    def query(self, range_m: float, azimuth_deg: float, elevation_deg: float, ground_elevation_m: float, earth_model: str = None) -> dict:
-        payload = {"range_m": range_m, "azimuth_deg": azimuth_deg, "elevation_deg": elevation_deg, "ground_elevation_m": ground_elevation_m}
+    def query(self, range_m: float, azimuth_deg: float, elevation_deg: float, terrain_msl_m: float, earth_model: str = None) -> dict:
+        payload = {"range_m": range_m, "azimuth_deg": azimuth_deg, "elevation_deg": elevation_deg, "terrain_msl_m": terrain_msl_m}
         if earth_model: payload["earth_model"] = earth_model
         r = requests.post(f"{self._base}/query", json=payload, timeout=5, verify=False)
         if r.status_code == 200: return r.json()

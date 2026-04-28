@@ -28,14 +28,14 @@ void RadarServer::start()
             return;
         }
         const LLA& r      = handler_.radar();
-        double ground_elev = handler_.radarGroundElev();
+        double terrain_msl = handler_.radarTerrainMsl();
         LutMetadata meta   = handler_.lutMetadata();
         json out;
         out["lat_deg"]       = r.lat_deg;
         out["lon_deg"]       = r.lon_deg;
         out["alt_m"]         = r.alt_m;
-        out["ground_elev_m"] = ground_elev;
-        out["agl_m"]         = r.alt_m - ground_elev;
+        out["terrain_msl_m"] = terrain_msl;
+        out["agl_m"]         = r.alt_m - terrain_msl;
         out["max_range_m"]   = handler_.maxRange();
         out["lut"]["az_count"]    = meta.az_count;
         out["lut"]["range_count"] = meta.range_count;
@@ -78,14 +78,14 @@ void RadarServer::start()
             return;
         }
         const LLA& r       = handler_.radar();
-        double ground_elev  = handler_.radarGroundElev();
+        double terrain_msl  = handler_.radarTerrainMsl();
         LutMetadata meta    = handler_.lutMetadata();
         json out;
         out["lat_deg"]       = r.lat_deg;
         out["lon_deg"]       = r.lon_deg;
         out["alt_m"]         = r.alt_m;
-        out["ground_elev_m"] = ground_elev;
-        out["agl_m"]         = r.alt_m - ground_elev;
+        out["terrain_msl_m"] = terrain_msl;
+        out["agl_m"]         = r.alt_m - terrain_msl;
         out["max_range_m"]   = handler_.maxRange();
         out["lut"]["az_count"]     = meta.az_count;
         out["lut"]["range_count"]  = meta.range_count;
@@ -150,9 +150,9 @@ void RadarServer::start()
         }
 
         if (!body.contains("range_m") || !body.contains("azimuth_deg") ||
-            !body.contains("elevation_deg") || !body.contains("ground_elevation_m")) {
+            !body.contains("elevation_deg") || !body.contains("terrain_msl_m")) {
             res.status = 400;
-            res.set_content(R"({"error":"bad request: required fields: range_m, azimuth_deg, elevation_deg, ground_elevation_m"})",
+            res.set_content(R"({"error":"bad request: required fields: range_m, azimuth_deg, elevation_deg, terrain_msl_m"})",
                             "application/json");
             return;
         }
@@ -162,7 +162,7 @@ void RadarServer::start()
             q.range_m            = body.at("range_m").get<double>();
             q.azimuth_deg        = body.at("azimuth_deg").get<double>();
             q.elevation_deg      = body.at("elevation_deg").get<double>();
-            q.ground_elevation_m = body.at("ground_elevation_m").get<double>();
+            q.terrain_msl_m      = body.at("terrain_msl_m").get<double>();
             if (body.contains("earth_model"))
                 q.earth_model = body.at("earth_model").get<std::string>();
         } catch (...) {
@@ -177,7 +177,7 @@ void RadarServer::start()
             out["lat_deg"]           = r.position.lat_deg;
             out["lon_deg"]           = r.position.lon_deg;
             out["alt_msl_m"]         = r.position.alt_m;
-            out["ground_elev_m"]     = r.ground_elevation_m;
+            out["terrain_msl_m"]     = r.terrain_msl_m;
             out["agl_m"]             = r.target_height_agl_m;
             out["horiz_range_m"]     = r.horizontal_range_m;
             out["relative_elev_deg"] = r.relative_elevation_deg;

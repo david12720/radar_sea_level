@@ -27,8 +27,8 @@ bool QueryHandler::setRadar(double lat_deg, double lon_deg, double agl_m)
     std::copy(data.cells, data.cells + data.total_cells, lut_cells_pool_);
     lut_az_count_         = data.az_count;
     lut_range_count_      = data.range_count;
-    radar_ground_elev_m_  = exporter.radarTerrainM();
-    radar_                = { lat_deg, lon_deg, radar_ground_elev_m_ + agl_m };
+    radar_terrain_msl_m_  = exporter.radarTerrainM();
+    radar_                = { lat_deg, lon_deg, radar_terrain_msl_m_ + agl_m };
     radar_set_            = true;
     return true;
 }
@@ -76,8 +76,8 @@ TargetResult QueryHandler::handle(const RadarQuery& q) const
     RadarMeasurement meas { q.range_m, q.azimuth_deg, q.elevation_deg };
     try {
         const auto& model = getEarthModel(q.earth_model);
-        TargetResult r = computeTargetSeaLevel(radar_, meas, q.ground_elevation_m, model);
-        double elev_to_gnd = elevationToGround(radar_, r.horizontal_range_m, q.ground_elevation_m);
+        TargetResult r = computeTargetSeaLevel(radar_, meas, q.terrain_msl_m, model);
+        double elev_to_gnd = elevationToGround(radar_, r.horizontal_range_m, q.terrain_msl_m);
         r.relative_elevation_deg = relativeElevation(q.elevation_deg, elev_to_gnd);
         return r;
     } catch (const std::invalid_argument& e) {

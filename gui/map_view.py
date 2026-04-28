@@ -31,7 +31,7 @@ def _target_popup(t: dict) -> html.Div:
         html.Table([
             row("Lat / Lon",  f"{t['lat_deg']:.5f}° / {t['lon_deg']:.5f}°"),
             row("Alt MSL",    f"{t['alt_msl_m']:.1f} m"),
-            row("Ground",     f"{t['ground_elev_m']:.1f} m"),
+            row("Ground",     f"{t['terrain_msl_m']:.1f} m"),
             row("AGL",        f"{t['agl_m']:.1f} m"),
             row("Range",      f"{t['horiz_range_m']:.0f} m"),
             row("Az / El",    f"{t['azimuth_deg']:.1f}° / {t['elevation_deg']:.1f}°"),
@@ -66,7 +66,7 @@ def _radar_popup(r: dict) -> html.Div:
         html.Table([
             row("Lat",        f"{r['lat_deg']:.5f}°"),
             row("Lon",        f"{r['lon_deg']:.5f}°"),
-            row("Ground",     f"{r.get('ground_elev_m', 0):.1f} m MSL"),
+            row("Ground",     f"{r.get('terrain_msl_m', 0):.1f} m MSL"),
             row("Height AGL", f"{r.get('agl_m', 0):.1f} m"),
             row("Alt MSL",    f"{r['alt_m']:.1f} m"),
         ], style={"borderCollapse": "collapse"}),

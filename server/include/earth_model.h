@@ -12,7 +12,7 @@ public:
 
     // Given the radar LLA and a (range, azimuth, elevation) measurement, computes
     // the target's position (lat/lon/alt MSL), horizontal_range_m and vertical_offset_m.
-    // Does NOT set ground_elevation_m, target_height_agl_m, or relative_elevation_deg —
+    // Does NOT set terrain_msl_m, target_height_agl_m, or relative_elevation_deg —
     // those are model-independent and are filled in by the caller.
     virtual TargetResult propagate(const LLA& radar,
                                    const RadarMeasurement& meas) const = 0;

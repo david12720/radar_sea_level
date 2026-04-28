@@ -8,7 +8,7 @@ static void usage(const char* prog)
               << "Default: port=9001\n"
               << "\nAccepts TCP connections for high-rate target queries.\n"
               << "Session setup: send radar position (lat, lon, alt_msl) as 3 doubles.\n"
-              << "Per target: send (range_m, azimuth_deg, elevation_deg, ground_elevation_m) as 4 doubles.\n"
+              << "Per target: send (range_m, azimuth_deg, elevation_deg, terrain_msl_m) as 4 doubles.\n"
               << "Response:   receive (lat_deg, lon_deg, alt_msl_m, agl_m, relative_elev_deg) as 5 doubles.\n"
               << "Disconnect to end session.\n";
 }

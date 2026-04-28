@@ -11,7 +11,7 @@ struct RadarQuery {
     double      azimuth_deg;
     double      elevation_deg;
     std::string earth_model;
-    double      ground_elevation_m = 0.0;
+    double      terrain_msl_m = 0.0;
 };
 
 struct NoCoverageError : std::runtime_error {
@@ -70,7 +70,7 @@ public:
     bool        radarSet()          const { return radar_set_; }
     const LLA&  radar()             const { return radar_; }
     double      maxRange()          const { return max_range_m_; }
-    double      radarGroundElev()   const { return radar_ground_elev_m_; }
+    double      radarTerrainMsl()   const { return radar_terrain_msl_m_; }
 
     /** Returns pointer to the static 14.4M-cell elevation grid. */
     const int32_t* lutCells()    const { return lut_cells_pool_; }
@@ -87,7 +87,7 @@ private:
     DemDatabase::Format  dem_fmt_;
     LLA         radar_ {};
     bool        radar_set_            = false;
-    double      radar_ground_elev_m_  = 0.0;
+    double      radar_terrain_msl_m_  = 0.0;
 
     static int32_t lut_cells_pool_[MAX_LUT_RANGES * MAX_LUT_AZIMUTHS];
     uint32_t       lut_az_count_    = 0;
