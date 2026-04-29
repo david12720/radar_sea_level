@@ -24,7 +24,7 @@
 #endif
 
 #pragma pack(push, 1)
-struct BlkHdr {
+struct st_dtm_blkhdr_t {
     uint32_t blk_id;
     uint32_t blk_length;
     uint32_t time_tag;
@@ -32,13 +32,22 @@ struct BlkHdr {
     uint32_t ch_id;
 };
 
-struct HeightReqData {
+struct st_dtm_cartes_t {
     float x;  // Easting
     float y;  // Northing
     float z;  // Zone (whole number cast to int)
 };
 
-struct HeightRespData {
+struct st_tdp_dtm_height_req_data_t {
+    st_dtm_cartes_t radar_pos;
+};
+
+struct st_tdp_dtm_height_req_msg_t {
+    st_dtm_blkhdr_t             blk_hdr;
+    st_tdp_dtm_height_req_data_t data;
+};
+
+struct st_dtm_tdp_height_data_t {
     int32_t validity;     // 0=ok, -1=failed
     float   dted_height;  // terrain MSL at radar position
     float   spare[3];
@@ -79,18 +88,17 @@ void TdpDtmTcpServer::handleClient(unsigned long long sock) const
 void TdpDtmTcpServer::handleClient(int sock) const
 #endif
 {
-    BlkHdr        hdr{};
-    HeightReqData req{};
-    if (!recvAll(sock, &hdr, sizeof(hdr))) return;
-    if (!recvAll(sock, &req, sizeof(req))) return;
+    st_tdp_dtm_height_req_msg_t msg{};
+    if (!recvAll(sock, &msg, sizeof(msg))) return;
 
-    HeightRespData resp{};
+    st_dtm_tdp_height_data_t resp{};
     std::memset(&resp, 0, sizeof(resp));
 
     try {
-        UtmPoint utm{ static_cast<double>(req.x),
-                      static_cast<double>(req.y),
-                      static_cast<int>(req.z),
+        const st_dtm_cartes_t& pos = msg.data.radar_pos;
+        UtmPoint utm{ static_cast<double>(pos.x),
+                      static_cast<double>(pos.y),
+                      static_cast<int>(pos.z),
                       'N' };
         double lat_deg = 0.0, lon_deg = 0.0;
         utm_to_ll(utm, lat_deg, lon_deg);
