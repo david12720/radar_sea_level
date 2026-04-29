@@ -53,6 +53,8 @@ All C++ dependencies are **vendored** — no separate installs required:
 | Port | Component | Configurable |
 |------|-----------|-------------|
 | 8080 | C++ radar server | `--port` arg |
+| 9000 | LUT TCP export server | `--port` arg |
+| 9001 | TDP DTM TCP server | `--port` arg |
 | 8050 | Python GUI (Dash) | hardcoded in `app.py` |
 | 8081 | Tile server (Flask) | auto-assigned |
 
@@ -187,11 +189,13 @@ radar_sea_level/
 │   │   ├── radar_server.h/.cpp   # HTTP transport: JSON ↔ QueryHandler
 │   │   ├── lut_exporter.h/.cpp   # Builds and exports the ground-elevation LUT
 │   │   ├── lut_tcp_server.h/.cpp # TCP server: sends raw LUT binary to clients
+│   │   ├── tdp_dtm_tcp_server.h/.cpp # TCP server: UTM input, terrain MSL + LUT output
 │   │   └── target_tcp_server.h/.cpp # TCP server: per-target geometry queries
 │   ├── tests/
 │   │   └── test_query_handler.cpp
 │   ├── main_server.cpp           # HTTP server entry point
 │   ├── main_lut_server.cpp       # LUT TCP server entry point
+│   ├── main_tdp_dtm_server.cpp   # TDP DTM TCP server entry point
 │   ├── main_target_server.cpp    # Target TCP server entry point
 │   └── main.cpp                  # CLI demo
 ├── gui/
@@ -235,6 +239,12 @@ g++ -std=c++17 -O2 -Iinclude -Iapp -o lut_server \
     main_lut_server.cpp app/lut_exporter.cpp app/lut_tcp_server.cpp \
     src/coord_convert.cpp src/dted_tile.cpp src/dem_database.cpp \
     src/elevation_lut.cpp src/radar_compute.cpp src/relative_angle.cpp src/earth_model.cpp -lpthread
+
+# TDP DTM TCP server
+g++ -std=c++17 -O2 -Iinclude -Iapp -o tdp_dtm_server \
+    main_tdp_dtm_server.cpp app/tdp_dtm_tcp_server.cpp app/lut_exporter.cpp \
+    src/coord_convert.cpp src/dted_tile.cpp src/dem_database.cpp \
+    src/elevation_lut.cpp src/radar_compute.cpp src/earth_model.cpp -lpthread
 ```
 
 ## Usage — HTTP Server + GUI
@@ -331,6 +341,47 @@ int32_t elev = cells[12 * range_count + 100];
 ```
 
 File saved with `mode 1` is the same raw block with no header.
+
+---
+
+## Usage — TDP DTM TCP Server
+
+Accepts a UTM radar position, returns terrain MSL at that position, and saves a full ground-elevation LUT to `output.bin`.
+
+### Start the server
+
+```bash
+./tdp_dtm_server [--tiles ./tiles/] [--port 9001] [--max-range 15000] [--dem-format hgt|dted]
+```
+
+### Wire protocol (binary, little-endian)
+
+**Client → server** (32 bytes):
+
+| Field | Type | Size | Notes |
+|-------|------|------|-------|
+| `blk_hdr` | 5 × uint32 | 20 | Block header — parsed but not used |
+| `x` | float32 | 4 | UTM easting (m, false easting included) |
+| `y` | float32 | 4 | UTM northing (m) |
+| `z` | float32 | 4 | UTM zone number (whole number, e.g. 36.0) |
+
+Hemisphere is assumed North. Zone is cast to `int`.
+
+**Server → client** (20 bytes):
+
+| Field | Type | Size | Notes |
+|-------|------|------|-------|
+| `validity` | int32 | 4 | 0 = ok, -1 = failed |
+| `dted_height` | float32 | 4 | Terrain MSL at radar position (m) |
+| `spare` | 3 × float32 | 12 | Reserved, always 0 |
+
+On success the server also writes a full `int32[az][range]` LUT to `output.bin` in the working directory (same format as the LUT TCP server's save-to-file mode).
+
+### Test client
+
+```bash
+python test_tdp_dtm_client.py --easting 658104 --northing 3519216 --zone 36
+```
 
 ---
 
