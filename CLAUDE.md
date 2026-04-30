@@ -54,10 +54,12 @@ server/
     radar_server.h/.cpp   — HTTP transport: JSON ↔ QueryHandler, registers all endpoints
     lut_tcp_server.h/.cpp — TCP variant using ElevationLUT (O(1) per query)
     lut_exporter.h/.cpp   — exports LUT to file
+    tdp_dtm_tcp_server.h/.cpp — TCP server: UTM input → terrain MSL response + output.bin LUT
     target_tcp_server.h/.cpp — TCP target server
   main.cpp            — demo CLI: load tiles, build LUT, run test queries
   main_server.cpp     — HTTP server entry point (parses --port/--tiles/--max-range)
   main_lut_server.cpp — LUT server entry point
+  main_tdp_dtm_server.cpp — TDP DTM TCP server entry point
   main_target_server.cpp — target server entry point
   tests/
     test_query_handler.cpp — unit tests for QueryHandler
