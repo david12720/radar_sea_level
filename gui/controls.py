@@ -38,6 +38,14 @@ def layout(online_mode: bool = False) -> html.Div:
         html.Div(id="radar-status-msg",
                  style={"marginTop": "6px", "fontSize": "12px", "minHeight": "18px"}),
 
+        html.Div([
+            html.Label("Terrain peaks — az step (°)",
+                       style={"fontSize": "12px", "color": "#555"}),
+            dcc.Input(id="input-az-step", type="number", value=3.0,
+                      min=0.1, max=360, step=0.1, debounce=True,
+                      style={"width": "100%", "padding": "4px", "marginTop": "4px"}),
+        ], style={"marginTop": "10px"}),
+
         html.Hr(style={"margin": "16px 0"}),
 
         # ── Target query ──────────────────────────────────────────────────────

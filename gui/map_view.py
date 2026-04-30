@@ -104,6 +104,48 @@ def build_radar_layer(radar: dict) -> list:
     ]
 
 
+def build_terrain_maxima_layer(maxima: list) -> list:
+    """Creates a small brown marker at each azimuth's max-elevation point."""
+    markers = []
+    for m in maxima:
+        angle = m["max_angle_deg"]
+        elev  = m["elev_m"]
+        markers.append(
+            dl.CircleMarker(
+                center=[m["lat_deg"], m["lon_deg"]],
+                radius=5,
+                color="#5C3317",
+                fillColor="#CD853F",
+                fillOpacity=0.9,
+                weight=1,
+                children=[
+                    dl.Tooltip(f"{angle:.2f}°", permanent=False),
+                    dl.Popup(html.Div([
+                        html.Div("Terrain Masking Peak", style={
+                            "fontWeight": "bold", "fontSize": "13px",
+                            "marginBottom": "4px", "borderBottom": "1px solid #ddd",
+                            "paddingBottom": "3px",
+                        }),
+                        html.Table([
+                            html.Tr([html.Td("Mask angle", style={"color":"#666","paddingRight":"10px","fontSize":"12px"}),
+                                     html.Td(f"{angle:.2f}°", style={"fontWeight":"bold","fontSize":"12px"})]),
+                            html.Tr([html.Td("Elev MSL",   style={"color":"#666","paddingRight":"10px","fontSize":"12px"}),
+                                     html.Td(f"{elev:.0f} m", style={"fontWeight":"bold","fontSize":"12px"})]),
+                            html.Tr([html.Td("Azimuth",    style={"color":"#666","paddingRight":"10px","fontSize":"12px"}),
+                                     html.Td(f"{m['az_deg']:.1f}°", style={"fontWeight":"bold","fontSize":"12px"})]),
+                            html.Tr([html.Td("Range",      style={"color":"#666","paddingRight":"10px","fontSize":"12px"}),
+                                     html.Td(f"{m['range_m']:.0f} m", style={"fontWeight":"bold","fontSize":"12px"})]),
+                            html.Tr([html.Td("Lat / Lon",  style={"color":"#666","paddingRight":"10px","fontSize":"12px"}),
+                                     html.Td(f"{m['lat_deg']:.5f}° / {m['lon_deg']:.5f}°",
+                                             style={"fontWeight":"bold","fontSize":"12px"})]),
+                        ], style={"borderCollapse": "collapse"}),
+                    ], style={"minWidth": "210px"})),
+                ],
+            )
+        )
+    return markers
+
+
 def layout(initial_radar: dict, tile_url: str, max_native_zoom: int = 16) -> html.Div:
     """Initializes the Dash-Leaflet map container with base tiles and elevation overlay bar."""
     center = ([initial_radar["lat_deg"], initial_radar["lon_deg"]]
@@ -139,6 +181,7 @@ def layout(initial_radar: dict, tile_url: str, max_native_zoom: int = 16) -> htm
                                  maxNativeZoom=max_native_zoom, maxZoom=max_native_zoom + 4),
                     dl.LayerGroup(id="radar-layer",
                                   children=build_radar_layer(initial_radar)),
+                    dl.LayerGroup(id="terrain-maxima-layer"),
                     dl.LayerGroup(id="target-layer"),
                 ],
                 style={"width": "100%", "height": "100%"},
