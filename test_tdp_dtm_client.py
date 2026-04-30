@@ -9,7 +9,7 @@ Usage:
 
 Wire protocol
     Request  : BlkHdr (5 x uint32 = 20 bytes) + x,y,z (3 x float32 = 12 bytes)
-    Response : validity (int32) + dted_height (float32) + spare[3] (3 x float32)
+    Response : BlkHdr (5 x uint32 = 20 bytes) + validity (int32) + dted_height (float32) + spare[3] (3 x float32)
 """
 
 import argparse
@@ -22,8 +22,8 @@ import sys
 REQUEST_FMT  = "<5I3f"   # blk_hdr (5 uint32) + x, y, z (3 float32)
 REQUEST_SIZE = struct.calcsize(REQUEST_FMT)   # 32 bytes
 
-RESPONSE_FMT  = "<i4f"  # validity (int32) + dted_height + spare[3] (4 float32)
-RESPONSE_SIZE = struct.calcsize(RESPONSE_FMT) # 20 bytes
+RESPONSE_FMT  = "<5Ii4f"  # blk_hdr (5 uint32) + validity (int32) + dted_height + spare[3] (4 float32)
+RESPONSE_SIZE = struct.calcsize(RESPONSE_FMT) # 40 bytes
 
 
 def _recvall(s: socket.socket, n: int) -> bytes:
@@ -52,9 +52,10 @@ def send_request(host: str, port: int,
 
         raw = _recvall(s, RESPONSE_SIZE)
 
-    validity, dted_height, *spare = struct.unpack(RESPONSE_FMT, raw)
+    blk_id, blk_length, time_tag, msg_seq_no, ch_id, validity, dted_height, *spare = struct.unpack(RESPONSE_FMT, raw)
 
     print(f"\n── Response ────────────────────────────────────────────────")
+    print(f"  blk_id      : {blk_id}")
     if validity == 0:
         print(f"  Status      : OK")
         print(f"  Terrain MSL : {dted_height:.2f} m")
