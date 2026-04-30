@@ -17,6 +17,8 @@ gui/map_tiles/map_tiles/
 radar_server
 radar_sea_level
 server/lut_server
+server/tdp_dtm_server
+server/target_server
 server/test_query_handler
 server/tests/test_query_handler
 lut_output*.bin
