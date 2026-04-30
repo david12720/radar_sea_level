@@ -110,6 +110,12 @@ class RadarApiClient:
         if r.status_code == 200: return r.json()
         raise RuntimeError(r.text)
 
+    def get_terrain_maxima(self, az_step_deg: float = 3.0) -> list:
+        r = requests.get(f"{self._base}/terrain_maxima",
+                         params={"az_step_deg": az_step_deg}, timeout=10, verify=False)
+        if r.status_code == 200: return r.json()
+        raise RuntimeError(r.text)
+
     def query(self, range_m: float, azimuth_deg: float, elevation_deg: float, terrain_msl_m: float, earth_model: str = None) -> dict:
         payload = {"range_m": range_m, "azimuth_deg": azimuth_deg, "elevation_deg": elevation_deg, "terrain_msl_m": terrain_msl_m}
         if earth_model: payload["earth_model"] = earth_model

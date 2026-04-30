@@ -11,10 +11,12 @@ Also provides **UTM ↔ lat/lon coordinate conversion** (WGS84, zone auto-detect
 
 ## Build
 
-Compiler is **WSL g++** (no Windows compiler). cmake is not installed — build directly:
+Use **Visual Studio / MSBuild** (solution at `server/radar_sea_level.sln`):
 
-```bash
-wsl bash -c "cd /mnt/c/Users/david/Downloads/radar_sea_level/server && g++ -std=c++17 -O2 -Iinclude -Iapp -o radar_server main_server.cpp app/query_handler.cpp app/radar_server.cpp src/coord_convert.cpp src/dted_tile.cpp src/dem_database.cpp src/elevation_lut.cpp src/radar_compute.cpp src/relative_angle.cpp -lpthread"
+```powershell
+& "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe" `
+  "C:\Users\david\Downloads\radar_sea_level\server\radar_sea_level.sln" `
+  /p:Configuration=Debug /p:Platform=x64 /m
 ```
 
 Run the server (from `server/` so `./tiles/` resolves):
@@ -53,11 +55,11 @@ server/
     query_handler.h/.cpp  — pure domain logic: RadarQuery → TargetResult, owns DemDatabase
     radar_server.h/.cpp   — HTTP transport: JSON ↔ QueryHandler, registers all endpoints
     lut_tcp_server.h/.cpp — TCP variant using ElevationLUT (O(1) per query)
-    lut_exporter.h/.cpp   — exports LUT to file
+    lut_exporter.h/.cpp   — exports LUT; az_step_deg + range_step_m configurable (defaults: 0.1°, 15 m)
     tdp_dtm_tcp_server.h/.cpp — TCP server: UTM input → terrain MSL response + output.bin LUT
     target_tcp_server.h/.cpp — TCP target server
   main.cpp            — demo CLI: load tiles, build LUT, run test queries
-  main_server.cpp     — HTTP server entry point (parses --port/--tiles/--max-range)
+  main_http_server.cpp — HTTP server entry point (parses --port/--tiles/--max-range)
   main_lut_server.cpp — LUT server entry point
   main_tdp_dtm_server.cpp — TDP DTM TCP server entry point
   main_target_server.cpp — target server entry point
@@ -71,10 +73,10 @@ gui/
   api_client.py       — RadarApiClient: HTTP wrapper for all C++ server endpoints;
                         also standalone helpers: ping_open_elevation, get_open_elevation,
                         get_open_meteo_elevation
-  controls.py         — left panel layout (radar form, target sliders, coord converter);
-                        no server or map knowledge
+  controls.py         — left panel layout (radar form, target sliders, coord converter,
+                        terrain peaks az-step input); no server or map knowledge
   map_view.py         — map rendering via dash_leaflet; build_radar_layer(),
-                        build_target_markers()
+                        build_target_markers(), build_terrain_maxima_layer()
   tile_server.py      — spawns local Flask tile server for MBTiles file
 
 map_tiles/            — MBTiles file served by gui/tile_server.py
@@ -90,6 +92,8 @@ All endpoints return `application/json`.
 | GET    | `/radar`    | Get current radar pos + terrain_msl, agl, max_range_m |
 | POST   | `/radar`    | Set radar: `{lat_deg, lon_deg, agl_m}` → same as GET |
 | GET    | `/elevation`| Terrain elevation: `?lat=X&lon=Y` → `{elev_m}` |
+| GET    | `/lut`      | Raw binary LUT: `uint32 az_count, uint32 range_count, int32[az*range]` (little-endian) |
+| GET    | `/terrain_maxima` | Per-azimuth masking angle: `?az_step_deg=3` → `[{az_deg, max_angle_deg, elev_m, range_m, lat_deg, lon_deg}]` — skips radar ground point (ri=0); returns all azimuths including sea |
 | POST   | `/query`    | Target query: `{range_m, azimuth_deg, elevation_deg, terrain_msl_m}` → `{lat_deg, lon_deg, alt_msl_m, terrain_msl_m, agl_m, horiz_range_m, relative_elev_deg}` |
 | POST   | `/convert`  | Coord conversion: `{direction, ...}` — see below |
 
@@ -128,15 +132,17 @@ All errors: `{"error": "message"}`
 ## Server Architecture
 
 ```
-main_server.cpp
+main_http_server.cpp
   └── QueryHandler(max_range_m, tiles_dir)   ← owns DemDatabase, no HTTP
   └── RadarServer(handler, port).start()     ← registers routes, delegates to handler
         GET  /health
-        GET  /radar          → handler.radar(), handler.getElevation()
-        POST /radar          → handler.setRadar()
-        GET  /elevation      → handler.getElevation()
-        POST /query          → handler.handle(RadarQuery)
-        POST /convert        → ll_to_utm() / utm_to_ll() (stateless)
+        GET  /radar               → handler.radar(), handler.getElevation()
+        POST /radar               → handler.setRadar()
+        GET  /lut                 → handler.lutCells() as raw binary
+        GET  /terrain_maxima      → max masking angle per azimuth from LUT (no recompute)
+        GET  /elevation           → handler.getElevation()
+        POST /query               → handler.handle(RadarQuery)
+        POST /convert             → ll_to_utm() / utm_to_ll() (stateless)
 ```
 
 ## GUI Architecture
@@ -148,8 +154,10 @@ app.py  main()
   ├── controls.layout()            → left panel (inputs, no state)
   ├── map_view.layout()            → right panel (map, no state)
   └── Dash callbacks:
-        set_radar()                → POST /radar, updates radar-store
+        set_radar()                → POST /radar, fetches LUT + terrain_maxima, updates stores
         update_radar_layer()       → reads radar-store, calls map_view.build_radar_layer()
+        refresh_terrain_maxima()   → GET /terrain_maxima on az-step change, updates store
+        update_terrain_maxima_layer() → reads terrain-maxima-store, calls build_terrain_maxima_layer()
         handle_buttons()           → POST /query, optional Open Elevation enrichment
         update_map()               → reads targets-store, calls map_view.build_target_markers()
         show_elevation()           → GET /elevation on map click

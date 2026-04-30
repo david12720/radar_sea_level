@@ -34,7 +34,9 @@ public:
      */
     LutExporter(const LLA& radar, double max_range_m, const std::string& tiles_dir,
                 AltMode alt_mode = AltMode::AGL,
-                DemDatabase::Format fmt = DemDatabase::Format::SRTM);
+                DemDatabase::Format fmt = DemDatabase::Format::SRTM,
+                double az_step_deg = 0.1,
+                double range_step_m = 15.0);
 
     /**
      * Performs the full polar scan of the terrain.
@@ -55,8 +57,8 @@ public:
 private:
     LLA         radar_;
     double      max_range_m_;
-    double      range_step_m_ = 15.0;
-    double      az_step_deg_  = 0.1;
+    double      range_step_m_;
+    double      az_step_deg_;
     double              terrain_m_    = 0.0;
     int                 tiles_loaded_ = 0;
     DemDatabase::Format dem_fmt_      = DemDatabase::Format::SRTM;

@@ -97,51 +97,61 @@ def main():
     except RuntimeError:
         initial_radar = None  # server running but radar not set yet
 
+    initial_maxima = []
     if initial_radar is not None:
         try:
             _lut, _lut_meta = client.get_lut()
         except Exception as e:
             print(f"[gui] Could not load LUT at startup: {e}")
+        try:
+            initial_maxima = client.get_terrain_maxima()
+        except Exception as e:
+            print(f"[gui] Could not load terrain maxima at startup: {e}")
 
     app.layout = html.Div([
-        dcc.Store(id="radar-store",   data=initial_radar),
-        dcc.Store(id="targets-store", data=[]),
-        dcc.Store(id="target-counter", data=0),
+        dcc.Store(id="radar-store",          data=initial_radar),
+        dcc.Store(id="targets-store",        data=[]),
+        dcc.Store(id="target-counter",       data=0),
+        dcc.Store(id="terrain-maxima-store", data=initial_maxima),
         controls.layout(_online_mode),
         map_view.layout(initial_radar, tile_url, max_native_zoom),
     ], style={"display": "flex", "height": "100vh", "overflow": "hidden"})
 
     # ── Set radar callback ────────────────────────────────────────────────────
     @callback(
-        Output("radar-store",      "data"),
-        Output("radar-status-msg", "children"),
-        Output("radar-status-msg", "style"),
-        Output("targets-store",    "data",  allow_duplicate=True),
-        Output("target-counter",   "data",  allow_duplicate=True),
-        Input("btn-set-radar",     "n_clicks"),
-        State("input-lat",         "value"),
-        State("input-lon",         "value"),
-        State("input-alt-msl",     "value"),
+        Output("radar-store",          "data"),
+        Output("radar-status-msg",     "children"),
+        Output("radar-status-msg",     "style"),
+        Output("targets-store",        "data",  allow_duplicate=True),
+        Output("target-counter",       "data",  allow_duplicate=True),
+        Output("terrain-maxima-store", "data",  allow_duplicate=True),
+        Input("btn-set-radar",         "n_clicks"),
+        State("input-lat",             "value"),
+        State("input-lon",             "value"),
+        State("input-alt-msl",         "value"),
+        State("input-az-step",         "value"),
         prevent_initial_call=True,
     )
-    def set_radar(n_clicks, lat, lon, alt):
+    def set_radar(n_clicks, lat, lon, alt, az_step):
         if not lat or not lon or alt is None:
-            return no_update, "Please fill in all fields.", {"color": "red", "fontSize": "12px"}, no_update, no_update
+            return no_update, "Please fill in all fields.", {"color": "red", "fontSize": "12px"}, no_update, no_update, no_update
         try:
             lat_f = float(lat)
             lon_f = float(lon)
         except (ValueError, TypeError):
-            return no_update, "Latitude and longitude must be valid numbers.", {"color": "red", "fontSize": "12px"}, no_update, no_update
+            return no_update, "Latitude and longitude must be valid numbers.", {"color": "red", "fontSize": "12px"}, no_update, no_update, no_update
         try:
             radar = client.set_radar(lat_f, lon_f, float(alt))
             global _lut, _lut_meta
             _lut, _lut_meta = client.get_lut()
+            step = float(az_step) if az_step and float(az_step) > 0 else 3.0
+            maxima = client.get_terrain_maxima(az_step_deg=step)
             alt_msl = radar.get("alt_m", float(alt))
             msg   = f"Radar set: {lat_f:.6f}°, {lon_f:.6f}°, AGL {float(alt):.1f} m → MSL {alt_msl:.1f} m"
             style = {"color": "green", "fontSize": "12px"}
-            return radar, msg, style, [], 0
+            return radar, msg, style, [], 0, maxima
         except RuntimeError as e:
-            return no_update, str(e), {"color": "red", "fontSize": "12px"}, no_update, no_update
+            return no_update, str(e), {"color": "red", "fontSize": "12px"}, no_update, no_update, no_update
 
     # ── Update radar layer when radar-store changes ───────────────────────────
     @callback(
@@ -150,6 +160,29 @@ def main():
     )
     def update_radar_layer(radar):
         return map_view.build_radar_layer(radar or {})
+
+    # ── Re-fetch terrain maxima when az step changes ──────────────────────────
+    @callback(
+        Output("terrain-maxima-store", "data"),
+        Input("input-az-step",         "value"),
+        State("radar-store",           "data"),
+        prevent_initial_call=True,
+    )
+    def refresh_terrain_maxima(az_step, radar):
+        if not radar or not az_step or float(az_step) <= 0:
+            return no_update
+        try:
+            return client.get_terrain_maxima(az_step_deg=float(az_step))
+        except Exception:
+            return no_update
+
+    # ── Update terrain maxima layer ───────────────────────────────────────────
+    @callback(
+        Output("terrain-maxima-layer", "children"),
+        Input("terrain-maxima-store",  "data"),
+    )
+    def update_terrain_maxima_layer(maxima):
+        return map_view.build_terrain_maxima_layer(maxima or [])
 
     # ── Target query callbacks ────────────────────────────────────────────────
     @callback(

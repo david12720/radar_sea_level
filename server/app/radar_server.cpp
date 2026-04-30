@@ -1,8 +1,11 @@
 #include "radar_server.h"
+#include "constants.h"
 #include "coord_convert.h"
 #include "earth_model.h"
+#include "radar_compute.h"
 #include "vendor/httplib.h"
 #include "vendor/json.hpp"
+#include <algorithm>
 #include <cstring>
 #include <iostream>
 
@@ -118,6 +121,68 @@ void RadarServer::start()
         std::memcpy(body.data() + 8, cells,        cells_count * sizeof(int32_t));
 
         res.set_content(body, "application/octet-stream");
+    });
+
+    // ── GET /terrain_maxima ───────────────────────────────────────────────────
+    // Optional param: az_step_deg (default 3.0)
+    // Returns JSON array, one entry per sampled azimuth:
+    //   [{az_deg, max_angle_deg, elev_m, range_m, lat_deg, lon_deg}, ...]
+    // max_angle_deg: steepest upward angle from radar to terrain (masking angle)
+    svr.Get("/terrain_maxima", [this](const httplib::Request& req, httplib::Response& res) {
+        if (!handler_.radarSet()) {
+            res.status = 404;
+            res.set_content(R"({"error":"radar not set — call POST /radar first"})",
+                            "application/json");
+            return;
+        }
+
+        double az_step_deg = 3.0;
+        if (req.has_param("az_step_deg")) {
+            try { az_step_deg = std::stod(req.get_param_value("az_step_deg")); }
+            catch (...) {
+                res.status = 400;
+                res.set_content(R"({"error":"az_step_deg must be a number"})", "application/json");
+                return;
+            }
+        }
+        if (az_step_deg <= 0.0 || az_step_deg > 360.0) {
+            res.status = 400;
+            res.set_content(R"({"error":"az_step_deg must be in (0, 360]"})", "application/json");
+            return;
+        }
+
+        LutMetadata meta       = handler_.lutMetadata();
+        const int32_t* cells   = handler_.lutCells();
+        const LLA& radar       = handler_.radar();
+
+        uint32_t stride = std::max(1u, static_cast<uint32_t>(std::round(az_step_deg / meta.az_step_deg)));
+
+        json result = json::array();
+        for (uint32_t ai = 0; ai < meta.az_count; ai += stride) {
+            const int32_t* row  = cells + static_cast<size_t>(ai) * meta.range_count;
+            uint32_t best_ri    = 1;
+            double   best_angle = std::atan2(static_cast<double>(row[1]) - radar.alt_m,
+                                             meta.range_step_m) * RAD2DEG;
+            for (uint32_t ri = 2; ri < meta.range_count; ++ri) {
+                double range_m = ri * meta.range_step_m;
+                double angle   = std::atan2(static_cast<double>(row[ri]) - radar.alt_m,
+                                            range_m) * RAD2DEG;
+                if (angle > best_angle) { best_angle = angle; best_ri = ri; }
+            }
+
+            double az_deg  = ai * meta.az_step_deg;
+            double range_m = best_ri * meta.range_step_m;
+            GroundPoint gp = groundPoint(radar, range_m, az_deg);
+            json entry;
+            entry["az_deg"]        = az_deg;
+            entry["max_angle_deg"] = best_angle;
+            entry["elev_m"]        = row[best_ri];
+            entry["range_m"]       = range_m;
+            entry["lat_deg"]       = gp.lat_deg;
+            entry["lon_deg"]       = gp.lon_deg;
+            result.push_back(std::move(entry));
+        }
+        res.set_content(result.dump(), "application/json");
     });
 
     // ── GET /elevation ────────────────────────────────────────────────────────
