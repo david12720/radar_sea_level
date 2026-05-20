@@ -115,6 +115,24 @@ Elev.es_destroy(svc);
 
 ---
 
+## POC consumer (`poc_consumer.exe`)
+
+A ready-made interactive test tool is included at `test/poc_consumer.cpp`.
+
+```
+poc_consumer.exe [--tiles <dir>] [lat lon ...]
+```
+
+| Usage | Behaviour |
+|-------|-----------|
+| `poc_consumer.exe --tiles C:\data\dted_maps` | Runs preset locations then enters interactive mode |
+| `poc_consumer.exe --tiles C:\data\dted_maps 32.08 34.78` | Queries one point and exits |
+| `poc_consumer.exe` | Uses default path `<exe_dir>\..\..\..\dted_maps` |
+
+In interactive mode type `lat lon` and press Enter, or `q` to quit.
+
+---
+
 ## Error codes
 
 | Code | Value | Meaning |

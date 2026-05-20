@@ -35,6 +35,21 @@ Consumers may be written in:
 - Any language that can call a C-ABI shared library: Python (ctypes/cffi), C#
   (P/Invoke), Rust (FFI), Go (cgo), Java (JNA/JNI), etc.
 
+## Compiler compatibility (library implementation)
+
+The library implementation itself also compiles with C++98 / C++03 compilers.
+The only C++11 feature it used — `std::mutex` — is replaced by a portable
+`TsMutex` shim that selects the right primitive at compile time:
+
+| Compiler | Mutex used |
+|----------|-----------|
+| C++11 and later | `std::mutex` |
+| C++98/03 on Windows (Win98+) | `CRITICAL_SECTION` |
+| C++98/03 on POSIX | `pthread_mutex_t` |
+
+To force the platform fallback on a C++11 compiler (e.g. for testing), define
+`ELEV_NO_STDMUTEX` in the preprocessor.
+
 ## Known limitations (v1)
 
 - **Cross-tile bicubic**: when a query point falls within one post-spacing of a

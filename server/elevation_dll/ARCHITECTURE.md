@@ -168,12 +168,26 @@ Total: `3428 + 3601 × 7214` = **25,981,042 bytes**.
 ## Thread safety
 
 - `es_get_elev` may be called concurrently from any number of threads.
-- `TileStore` holds a single `std::mutex`. Every `get()` call takes a unique lock.
-  The critical section is a linear scan of 256 packed 4-byte keys — typically
-  under 100 ns — so contention is not measurable at mouse-hover or even
-  high-rate radar target rates.
+- `TileStore` holds a single `TsMutex`. Every `get()` call takes a scoped lock
+  via `TsLock`. The critical section is a linear scan of 256 packed 4-byte keys
+  — typically under 100 ns — so contention is not measurable at mouse-hover or
+  even high-rate radar target rates.
 - `es_create` / `es_destroy` are **not** thread-safe versus concurrent queries.
   Caller must ensure no queries are in-flight during create/destroy.
+
+### `TsMutex` / `TsLock` — portable mutex
+
+Selected at compile time via `__cplusplus`:
+
+| Compiler | Primitive used |
+|----------|---------------|
+| C++11 and later | `std::mutex` |
+| C++98 / C++03 on Windows (Win98+) | `CRITICAL_SECTION` |
+| C++98 / C++03 on POSIX | `pthread_mutex_t` |
+
+The `TsLock` RAII guard (constructor locks, destructor unlocks) is written in
+C++98-compatible style — no move semantics, copy suppressed via private
+declaration.
 
 ---
 

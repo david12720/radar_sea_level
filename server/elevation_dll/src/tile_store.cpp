@@ -48,7 +48,7 @@ const unsigned char* TileStore::get(int lat_floor, int lon_floor,
 
     unsigned int key = pack_key(lat_floor, lon_floor);
 
-    std::lock_guard<std::mutex> lock(mutex_);
+    TsLock lock(mutex_);
 
     for (int i = 0; i < CAPACITY; ++i) {
         if (slots_[i].key == key) {

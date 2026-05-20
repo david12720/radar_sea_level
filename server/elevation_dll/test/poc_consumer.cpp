@@ -58,15 +58,27 @@ static void exe_dir(char* buf, int cap)
 int main(int argc, char** argv)
 {
     char default_dir[MAX_PATH];
-    const char* tiles_dir;
+    const char* tiles_dir = NULL;
+    int first_coord = 1;
 
-    if (argc > 1) {
-        tiles_dir = argv[1];
-    } else {
+    /* Parse --tiles <dir> anywhere in the argument list */
+    {
+        int i;
+        for (i = 1; i < argc; ++i) {
+            if (strcmp(argv[i], "--tiles") == 0 && i + 1 < argc) {
+                tiles_dir    = argv[i + 1];
+                first_coord  = i + 2;
+                break;
+            }
+        }
+    }
+
+    if (!tiles_dir) {
+        /* Default: <exe_dir>\..\..\..\dted_maps  (works from x64\Release\ or Win32\Release\) */
         exe_dir(default_dir, MAX_PATH);
-        strncat_s(default_dir, MAX_PATH, "dted_maps", _TRUNCATE);
+        strncat_s(default_dir, MAX_PATH, "..\\..\\..\\" "dted_maps", _TRUNCATE);
         tiles_dir = default_dir;
-        printf("No tiles_dir given — using default: %s\n", tiles_dir);
+        printf("No --tiles given — using default: %s\n", tiles_dir);
     }
 
     printf("Loading service from: %s\n", tiles_dir);
@@ -75,13 +87,14 @@ int main(int argc, char** argv)
     double dt  = now_us() - t0;
     if (!svc) {
         printf("es_create() failed — check tiles_dir path.\n");
+        printf("Usage: poc_consumer.exe [--tiles <dir>] [lat lon ...]\n");
         return 1;
     }
     printf("Service ready (%.2f us)\n\n", dt);
 
-    /* If extra lat/lon pairs given on command line, query them and exit */
-    if (argc > 3) {
-        int i = 2;
+    /* If lat/lon pairs given on command line, query them and exit */
+    if (first_coord + 1 <= argc - 1) {
+        int i = first_coord;
         while (i + 1 < argc) {
             double lat = atof(argv[i]);
             double lon = atof(argv[i + 1]);
