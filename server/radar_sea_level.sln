@@ -13,6 +13,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "read_lut", "read_lut.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tdp_dtm_server", "tdp_dtm_server.vcxproj", "{5D6E7F8A-9B0C-1D2E-3F4A-5B6C7D8E9F0A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "elevation_dll", "elevation_dll\elevation_dll.vcxproj", "{6E7F8A9B-0C1D-2E3F-4A5B-6C7D8E9F0A1B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "poc_consumer", "elevation_dll\test\poc_consumer.vcxproj", "{7F8A9B0C-1D2E-3F4A-5B6C-7D8E9F0A1B2C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -61,5 +65,19 @@ Global
 		{5D6E7F8A-9B0C-1D2E-3F4A-5B6C7D8E9F0A}.Debug|Win32.Build.0 = Debug|Win32
 		{5D6E7F8A-9B0C-1D2E-3F4A-5B6C7D8E9F0A}.Release|Win32.ActiveCfg = Release|Win32
 		{5D6E7F8A-9B0C-1D2E-3F4A-5B6C7D8E9F0A}.Release|Win32.Build.0 = Release|Win32
+		{6E7F8A9B-0C1D-2E3F-4A5B-6C7D8E9F0A1B}.Debug|x64.ActiveCfg = Debug|x64
+		{6E7F8A9B-0C1D-2E3F-4A5B-6C7D8E9F0A1B}.Debug|x64.Build.0 = Debug|x64
+		{6E7F8A9B-0C1D-2E3F-4A5B-6C7D8E9F0A1B}.Release|x64.ActiveCfg = Release|x64
+		{6E7F8A9B-0C1D-2E3F-4A5B-6C7D8E9F0A1B}.Release|x64.Build.0 = Release|x64
+		{6E7F8A9B-0C1D-2E3F-4A5B-6C7D8E9F0A1B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6E7F8A9B-0C1D-2E3F-4A5B-6C7D8E9F0A1B}.Debug|Win32.Build.0 = Debug|Win32
+		{6E7F8A9B-0C1D-2E3F-4A5B-6C7D8E9F0A1B}.Release|Win32.ActiveCfg = Release|Win32
+		{6E7F8A9B-0C1D-2E3F-4A5B-6C7D8E9F0A1B}.Release|Win32.Build.0 = Release|Win32
+		{7F8A9B0C-1D2E-3F4A-5B6C-7D8E9F0A1B2C}.Debug|x64.ActiveCfg = Debug|x64
+		{7F8A9B0C-1D2E-3F4A-5B6C-7D8E9F0A1B2C}.Debug|x64.Build.0 = Debug|x64
+		{7F8A9B0C-1D2E-3F4A-5B6C-7D8E9F0A1B2C}.Release|x64.ActiveCfg = Release|x64
+		{7F8A9B0C-1D2E-3F4A-5B6C-7D8E9F0A1B2C}.Release|x64.Build.0 = Release|x64
+		{7F8A9B0C-1D2E-3F4A-5B6C-7D8E9F0A1B2C}.Debug|Win32.ActiveCfg = Debug|x64
+		{7F8A9B0C-1D2E-3F4A-5B6C-7D8E9F0A1B2C}.Release|Win32.ActiveCfg = Release|x64
 	EndGlobalSection
 EndGlobal

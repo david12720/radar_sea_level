@@ -1,5 +1,6 @@
 # DEM tiles and data
 tiles/
+server/dted_maps/
 build/
 H36_preview/
 I36_preview/

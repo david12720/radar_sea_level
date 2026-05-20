@@ -1,0 +1,4 @@
+x64/
+src/*.o
+libelevation.so
+test/test_elev
