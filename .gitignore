@@ -41,3 +41,4 @@ __pycache__/
 # IDE/Tool specific
 .claude/
 *.bin
+/server/elevation_dll/Win32/Release
