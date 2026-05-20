@@ -20,6 +20,34 @@ The project is already added to `server/radar_sea_level.sln`.
 The existing projects (`radar_server`, `lut_tcp_server`, etc.) are unchanged —
 `elevation_dll` is an independent project, not a dependency of anything else.
 
+### Building with an older toolset (v141 / VS2017)
+
+The vcxproj defaults to `v143` (VS2022). To build with a different toolset
+without editing the file, pass it on the MSBuild command line:
+
+```powershell
+& "C:\...\MSBuild.exe" elevation_dll.vcxproj `
+  /p:Configuration=Release /p:Platform=x64 `
+  /p:PlatformToolset=v141 `
+  /p:WindowsTargetPlatformVersion=10.0.26100.0
+```
+
+The toolset must be installed via the Visual Studio Installer
+(**Individual components → MSVC v141 – VS 2017 C++ x64/x86 build tools**).
+
+### Testing the C++98 mutex fallback on a modern compiler
+
+Define `ELEV_NO_STDMUTEX` to force the `CRITICAL_SECTION` path regardless of
+the C++ standard in use. Useful to verify the fallback compiles and runs
+correctly without installing an old compiler:
+
+```powershell
+& "C:\...\MSBuild.exe" elevation_dll.vcxproj /p:Configuration=Release /p:Platform=x64 `
+  "/p:PreprocessorDefinitions=ELEVATION_DLL_EXPORTS;ELEV_NO_STDMUTEX;_WIN32_WINNT=0x0A00;NDEBUG"
+```
+
+Remove the define to restore normal C++11 `std::mutex` behaviour.
+
 ### Adding to a different solution
 
 1. Add `elevation_dll.vcxproj` to the solution.
@@ -55,6 +83,21 @@ Build:
 ```bash
 cd server/elevation_dll
 make
+```
+
+Build with strict C++98 (tests the `pthread_mutex_t` fallback path):
+
+```bash
+make CXX=g++ CXXFLAGS="-O2 -Wall -Wextra -fPIC -std=c++98 -pthread"
+```
+
+Build with MinGW on Windows (MSYS2):
+
+```bash
+# In an MSYS2 MinGW64 shell:
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-make
+cd /c/Users/.../radar_sea_level/server/elevation_dll
+mingw32-make CXX=g++ CXXFLAGS="-O2 -Wall -Wextra -fPIC -std=c++98 -pthread"
 ```
 
 Link a consumer:
