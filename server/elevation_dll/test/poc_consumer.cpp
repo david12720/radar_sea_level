@@ -44,15 +44,29 @@ static const struct { double lat; double lon; const char* name; } PRESETS[] = {
 };
 static const int N_PRESETS = (int)(sizeof(PRESETS) / sizeof(PRESETS[0]));
 
+static void exe_dir(char* buf, int cap)
+{
+    DWORD n = GetModuleFileNameA(NULL, buf, (DWORD)cap);
+    if (n == 0) { buf[0] = '.'; buf[1] = '\0'; return; }
+    /* strip filename, keep trailing backslash */
+    for (int i = (int)n - 1; i >= 0; --i) {
+        if (buf[i] == '\\' || buf[i] == '/') { buf[i + 1] = '\0'; return; }
+    }
+    buf[0] = '.'; buf[1] = '\\'; buf[2] = '\0';
+}
+
 int main(int argc, char** argv)
 {
-    const char* tiles_dir = argc > 1 ? argv[1] : NULL;
+    char default_dir[MAX_PATH];
+    const char* tiles_dir;
 
-    if (!tiles_dir) {
-        printf("Usage: poc_consumer <tiles_dir> [lat lon] ...\n");
-        printf("       Omit lat/lon to enter interactive mode.\n");
-        printf("Example: poc_consumer C:\\data\\dted_maps\\\n");
-        return 1;
+    if (argc > 1) {
+        tiles_dir = argv[1];
+    } else {
+        exe_dir(default_dir, MAX_PATH);
+        strncat_s(default_dir, MAX_PATH, "dted_maps", _TRUNCATE);
+        tiles_dir = default_dir;
+        printf("No tiles_dir given — using default: %s\n", tiles_dir);
     }
 
     printf("Loading service from: %s\n", tiles_dir);
@@ -65,7 +79,7 @@ int main(int argc, char** argv)
     }
     printf("Service ready (%.2f us)\n\n", dt);
 
-    /* If extra args given, treat them as lat/lon pairs and exit */
+    /* If extra lat/lon pairs given on command line, query them and exit */
     if (argc > 3) {
         int i = 2;
         while (i + 1 < argc) {
